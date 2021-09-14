@@ -74,18 +74,15 @@ private:
         }
     }
 
-    TreeNode<T>** _find(TreeNode<T>** nodePtr, const T& val, int* comparisons=0) {
+    TreeNode<T>** _find(TreeNode<T>** nodePtr, const T& val) {
         TreeNode<T>* node = *nodePtr;
         if (!node)
             return nullptr;
 
-        if(comparisons)
-            (*comparisons)++;
-
         if (_cmp(val, node->val)) {
-            return _find(&((*nodePtr)->left), val, comparisons);
+            return _find(&((*nodePtr)->left), val);
         } else if (_cmp(node->val, val)) {
-            return _find(&((*nodePtr)->right), val, comparisons);
+            return _find(&((*nodePtr)->right), val);
         } else {
             return nodePtr;
         }
@@ -110,32 +107,32 @@ private:
     void _preorder(TreeNode<T>* node, int id, const NodeApplicator& f) {
         if (node) {
             f(id, *node);
-            _preorder(node->left, id*2, f);
-            _preorder(node->right, id*2+1, f);
+            _preorder(node->left, id*2+1, f);
+            _preorder(node->right, id*2+2, f);
         }
     }
 
     void _postorder(TreeNode<T>* node, int id, const NodeApplicator& f) {
         if (node) {
-            _postorder(node->left, id*2, f);
-            _postorder(node->right, id*2+1, f);
+            _postorder(node->left, id*2+1, f);
+            _postorder(node->right, id*2+2, f);
             f(id, *node);
         }
     }
 
     void _inorder(TreeNode<T>* node, int id, const NodeApplicator& f) {
         if (node) {
-            _inorder(node->left, id*2, f);
+            _inorder(node->left, id*2+1, f);
             f(id, *node);
-            _inorder(node->right, id*2+1, f);
+            _inorder(node->right, id*2+2, f);
         }
     }
 
     void _outorder(TreeNode<T>* node, int id, const NodeApplicator& f) {
         if (node) {
-            _outorder(node->right, id*2+1, f);
+            _outorder(node->right, id*2+2, f);
             f(id, *node);
-            _outorder(node->left, id*2, f);
+            _outorder(node->left, id*2+1, f);
         }
     }
 
@@ -206,12 +203,9 @@ public:
     }
 
     int find(const T& val) {
-        int comparisons = 0;
-        TreeNode<T>** result = _find(&_root, val, &comparisons);
-        if (result)
-            return comparisons;
-        else
-            return -comparisons;
+        TreeNode<T>** result = _find(&_root, val);
+
+        return result != nullptr;
     }
 
     T pop_min() {
@@ -245,19 +239,19 @@ public:
         };
         switch (ttype) {
             case PREORDER:
-                _preorder(_root, 1, f);
+                _preorder(_root, 0, f);
                 break;
             case POSTORDER:
-                _postorder(_root, 1, f);
+                _postorder(_root, 0, f);
                 break;
             case INORDER:
-                _inorder(_root, 1, f);
+                _inorder(_root, 0, f);
                 break;
             case OUTORDER:
-                _outorder(_root, 1, f);
+                _outorder(_root, 0, f);
                 break;
             case BFS:
-                _bfs(_root, 1, f);
+                _bfs(_root, 0, f);
             default:
                 break;
         }
@@ -270,20 +264,20 @@ public:
         auto add_node = [&](int id, const TreeNode<T>& node) {
             out << "node" << id << "[label=" << node.val << "];\n";
             if (node.left) {
-                out << "node" << id << " -> node" << id*2 << ";\n";
-            } else  {
-                out << "nil" << id*2 << "[label=nil color=\"red\"];\n";
-                out << "node" << id << " -> nil" << id*2 << ";\n";
-            }
-
-            if (node.right) {
                 out << "node" << id << " -> node" << id*2+1 << ";\n";
-            } else {
+            } else  {
                 out << "nil" << id*2+1 << "[label=nil color=\"red\"];\n";
                 out << "node" << id << " -> nil" << id*2+1 << ";\n";
             }
+
+            if (node.right) {
+                out << "node" << id << " -> node" << id*2+2 << ";\n";
+            } else {
+                out << "nil" << id*2+2 << "[label=nil color=\"red\"];\n";
+                out << "node" << id << " -> nil" << id*2+2 << ";\n";
+            }
         };
-        _preorder(_root, 1, add_node);
+        _preorder(_root, 0, add_node);
 
         out << "}";
     }

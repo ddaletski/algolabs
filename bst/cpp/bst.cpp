@@ -47,10 +47,10 @@ int main(int argc, char* argv[]) {
                 infile >> arg;
                 int search_result = tree.find(arg);
                 outfile << arg << ": ";
-                if (search_result > 0) {
-                    outfile << "found after " << search_result << " comparison(s)";
+                if (search_result) {
+                    outfile << "found";
                 } else {
-                    outfile << "not found after " << -search_result << " comparison(s)";
+                    outfile << "not found";
                 }
                 outfile << "\n";
                 break;
@@ -85,11 +85,5 @@ int main(int argc, char* argv[]) {
     fout.close();
 
     system("dot graph.dot -Tsvg -o graph.svg");
-
-#ifdef __unix__
-    system("xdg-open ./graph.svg");
-#else
-    system("start graph.svg");
-#endif
     return 0;
 }

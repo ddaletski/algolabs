@@ -65,12 +65,17 @@ TEST_F(TreeTest, TestFind) {
     }
 
     for(int i = 1; i <= 10; ++i) {
-        auto comparisons = tree1.find(i);
-        ASSERT_GT(comparisons, 0);
+        ASSERT_TRUE(tree1.find(i));
     }
 
-    auto comparisons = tree1.find(15);
-    ASSERT_LT(comparisons, 0);
+    for(int i = -10; i <= 0; ++i) {
+        ASSERT_FALSE(tree1.find(i));
+    }
+
+    for(int i = 11; i <= 20; ++i) {
+        ASSERT_FALSE(tree1.find(i));
+    }
+
 }
 
 
