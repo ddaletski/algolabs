@@ -1,0 +1,16 @@
+[package]
+name = "rstructures"
+version = "0.1.0"
+authors = ["Denis Daletski <daletskidenis@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "rstructures"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rstructures"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.7.3"
