@@ -40,6 +40,14 @@ impl FastUnionUF {
         }
     }
 
+    pub fn contains(&self, id: usize) -> bool {
+        if id < self.max_size() && self.cluster_ids[id + 1] != 0 {
+            return true
+        }
+
+        false
+    }
+
     pub fn cluster_id(&self, id: usize) -> Option<usize> {
         assert!(id < self.max_size());
 
@@ -124,7 +132,6 @@ impl FastUnionUF {
         }
     }
 
-    // TODO: tests
     pub fn connected(&self, id1: usize, id2: usize) -> bool {
         if let Some(root1) = self.cluster_id(id1) {
             if let Some(root2) = self.cluster_id(id2) {
