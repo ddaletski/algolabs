@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rand::Rng;
 use std::time::Instant;
 
@@ -5,7 +6,7 @@ use union_find::FastUnionUF;
 
 fn main() {
     let n_nodes = 1e5 as usize;
-    let max_edges = n_nodes * 2;
+    let max_edges = n_nodes * 4;
 
     let mut uf = FastUnionUF::new(n_nodes);
 
@@ -19,6 +20,10 @@ fn main() {
         uf.join(id1, id2);
     }
 
-    println!("joining {} with {} edges took {} ms.", n_nodes, max_edges, start.elapsed().as_millis());
-    println!("clusters: {}", uf.clusters().len());
+    println!(
+        "joining {} with {} edges took {} ms.",
+        n_nodes,
+        max_edges,
+        start.elapsed().as_millis()
+    );
 }

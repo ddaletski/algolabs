@@ -18,21 +18,21 @@ pub struct FastUnionUF {
 
 #[derive(Defaults)]
 pub struct Cluster {
-    id: usize,
+    pub id: usize,
     #[def = "HashSet::new()"]
-    nodes: HashSet<usize>,
+    pub nodes: HashSet<usize>,
 }
 
 impl FastUnionUF {
-    pub fn new(size: usize) -> FastUnionUF {
+    pub fn new(max_size: usize) -> FastUnionUF {
         FastUnionUF {
-            cluster_ids: Vec::from_iter(std::iter::repeat(0).take(size + 1)),
+            cluster_ids: Vec::from_iter(std::iter::repeat(0).take(max_size + 1)),
             ..Default::default()
         }
     }
 
     pub fn insert(&mut self, id: usize) {
-        assert!(id < self.cluster_ids.len() - 1);
+        assert!(id < self.max_size());
 
         if self.cluster_ids[id + 1] == 0 {
             self.cluster_ids[id + 1] = (id + 1) as u32;
@@ -41,6 +41,8 @@ impl FastUnionUF {
     }
 
     pub fn cluster_id(&self, id: usize) -> Option<usize> {
+        assert!(id < self.max_size());
+
         let mut current = id + 1;
         let mut parent = self.cluster_ids[current] as usize;
         if parent == 0 {
@@ -55,7 +57,7 @@ impl FastUnionUF {
         Some(current - 1)
     }
 
-    fn _cluster_id_prunning(&mut self, id: usize) -> usize {
+    fn cluster_id_path_compression(&mut self, id: usize) -> usize {
         let mut current = id + 1;
         let mut parent = self.cluster_ids[current] as usize;
 
@@ -73,7 +75,7 @@ impl FastUnionUF {
     }
 
     pub fn cluster_size(&self, id: usize) -> usize {
-        assert!(id < self.cluster_ids.len() - 1);
+        assert!(id < self.max_size());
 
         let cluster_id = self.cluster_id(id);
         if let Some(cluster_id) = cluster_id {
@@ -86,6 +88,9 @@ impl FastUnionUF {
     }
 
     pub fn join(&mut self, id1: usize, id2: usize) {
+        assert!(id1 < self.max_size());
+        assert!(id2 < self.max_size());
+
         self.insert(id1);
         self.insert(id2);
 
@@ -93,11 +98,11 @@ impl FastUnionUF {
             return;
         }
 
-        // // change to this to test perf w/o prunning
+        // // change to this to test perf w/o path compression
         // let root1 = self.cluster_id(id1).unwrap();
         // let root2 = self.cluster_id(id2).unwrap();
-        let root1 = self._cluster_id_prunning(id1);
-        let root2 = self._cluster_id_prunning(id2);
+        let root1 = self.cluster_id_path_compression(id1);
+        let root2 = self.cluster_id_path_compression(id2);
 
         if root1 == root2 {
             return;
@@ -119,8 +124,23 @@ impl FastUnionUF {
         }
     }
 
+    // TODO: tests
+    pub fn connected(&self, id1: usize, id2: usize) -> bool {
+        if let Some(root1) = self.cluster_id(id1) {
+            if let Some(root2) = self.cluster_id(id2) {
+                return self.cluster_id(root1) == self.cluster_id(root2);
+            }
+        }
+
+        false
+    }
+
     pub fn size(&self) -> usize {
         self.size
+    }
+
+    pub fn max_size(&self) -> usize {
+        self.cluster_ids.len() - 1
     }
 
     pub fn clusters(&self) -> Vec<Cluster> {
@@ -157,13 +177,14 @@ mod tests {
     use crate::FastUnionUF;
 
     const N_NODES: usize = 1024;
+    const N_EDGES: usize = N_NODES * 2;
     const N_CLUSTERS: usize = 4;
 
     #[fixture]
     fn random_uf() -> FastUnionUF {
         let mut rng = rand::thread_rng();
         let mut uf = FastUnionUF::new(N_NODES);
-        for _ in 0..100 {
+        for _ in 0..N_EDGES {
             let id1 = rng.gen_range(0..N_NODES);
             let id2 = rng.gen_range(0..N_NODES);
 
@@ -333,6 +354,54 @@ mod tests {
                 uf.join(*id, first_id);
             }
             assert_eq!(uf.clusters().len(), i + 1);
+        }
+    }
+
+    #[rstest]
+    fn non_entries_arent_connected() {
+        let uf = FastUnionUF::new(N_NODES);
+
+        for (i, j) in (0..N_NODES).cartesian_product(0..N_NODES) {
+            assert!(!uf.connected(i, j));
+            assert!(!uf.connected(j, i));
+        }
+    }
+
+    #[rstest]
+    fn connected_works_for_disconnected_nodes(clusters: Vec<HashSet<usize>>) {
+        let mut uf = FastUnionUF::new(N_NODES);
+
+        let in_uf = clusters.get(0).unwrap();
+        let not_in_uf = clusters.get(1).unwrap();
+
+        let first_id = *in_uf.iter().take(1).next().unwrap();
+        for id in in_uf {
+            uf.join(*id, first_id);
+        }
+
+        for id1 in in_uf {
+            for id2 in not_in_uf {
+                assert!(!uf.connected(*id1, *id2));
+                assert!(!uf.connected(*id2, *id1));
+            }
+        }
+    }
+
+    #[rstest]
+    fn connected_works_for_connected_nodes(clusters: Vec<HashSet<usize>>) {
+        let mut uf = FastUnionUF::new(N_NODES);
+
+        let in_uf = clusters.get(0).unwrap();
+
+        let first_id = *in_uf.iter().take(1).next().unwrap();
+        for id in in_uf {
+            uf.join(*id, first_id);
+        }
+
+        for id1 in in_uf {
+            for id2 in in_uf {
+                assert!(uf.connected(*id1, *id2));
+            }
         }
     }
 
