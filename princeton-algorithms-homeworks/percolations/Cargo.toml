@@ -10,3 +10,6 @@ disjoint-sets = { path = "../../disjoint-sets" }
 ndarray = "0.15.3"
 itertools = "0.10.1"
 rand = "0.8.4"
+clap = "3.0.0-beta.4"
+indicatif = "0.16.0"
+gif = "0.11.2"
