@@ -1,5 +1,5 @@
 [package]
-name = "union-find"
+name = "disjoint-sets"
 version = "0.1.0"
 edition = "2018"
 
@@ -10,3 +10,10 @@ defaults = "0.2.0"
 rstest = "0.11.0"
 rand = "0.8.4"
 itertools = "0.10.1"
+
+[dev-dependencies]
+criterion = "0.3.5"
+
+[[bench]]
+name = "speedtest"
+harness = false

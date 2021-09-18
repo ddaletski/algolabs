@@ -4,7 +4,7 @@ use std::borrow::Borrow;
 use itertools::Itertools;
 use rand::Rng;
 
-use union_find::FastUnionUF;
+use disjoint_sets::FastUnionDSU;
 
 struct Percolation {
     /*
@@ -17,7 +17,7 @@ struct Percolation {
           \  ׀     /
         (bottom cell)
     */
-    dsu: FastUnionUF,
+    dsu: FastUnionDSU,
     width: usize,
 }
 
@@ -54,7 +54,7 @@ impl Percolation {
 
         // + two hidden cells for the top and bottom
         let mut this = Percolation {
-            dsu: FastUnionUF::new(rows * cols + 2),
+            dsu: FastUnionDSU::new(rows * cols + 2),
             width: cols,
         };
 
