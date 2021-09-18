@@ -39,10 +39,6 @@ struct Visualize {
 
 #[derive(Clap)]
 struct Threshold {
-    /// output plot path
-    #[clap(short, long)]
-    out: Option<String>,
-
     /// percolation grid height
     #[clap(short, long)]
     rows: u16,
