@@ -9,6 +9,7 @@ My homework solutions and other code for princeton algorithms and data structure
 
 - bst:
   - [cpp](bst/cpp)
+  - [rust](bst/rust)
   - [python](bst/python)
   - [haskell](bst/haskell)
   - [closure](bst/clojure)
