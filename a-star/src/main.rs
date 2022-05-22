@@ -1,14 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use a_star::common::{Point, Rect, Size};
+use a_star::common::{Point, Size};
+use a_star::gui::animation::Animation;
+use a_star::gui::utils::maze_image;
 use a_star::maze::Maze;
-use a_star::maze::{PointSet, SparsePointSet};
-use a_star::{AStarSolver, Solver};
+use a_star::maze::SparsePointSet;
+use a_star::solvers::{AStarSolver, Solver};
 
-use eframe::egui::{self, Image};
-use eframe::epaint::ColorImage;
-use image::buffer::ConvertBuffer;
-use image::{GrayImage, RgbaImage};
+use eframe::egui;
 use rand::Rng;
 
 fn main() {
@@ -22,14 +21,12 @@ fn main() {
 
 struct MyApp {
     solver: AStarSolver,
+    animation: Option<Animation>,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let size = Size {
-            width: 20,
-            height: 20,
-        };
+        let size = a_star::MAZE_SIZE;
 
         let source = Point { x: 0, y: 0 };
         let destination = Point {
@@ -53,6 +50,7 @@ impl Default for MyApp {
 
         Self {
             solver: AStarSolver::new(maze, source, destination),
+            animation: None,
         }
     }
 }
@@ -65,10 +63,10 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let title = "WinDow";
 
-        let stroke_color = ctx.style().visuals.text_color();
+        // let stroke_color = ctx.style().visuals.text_color();
 
         // Height of the visualization area
-        let canvas_height = 480.0;
+        // let canvas_height = 480.0;
 
         egui::CentralPanel::default()
             // .frame(egui::Frame::none())
@@ -79,37 +77,34 @@ impl eframe::App for MyApp {
                     self.solver.restart();
                 }
 
-                let solver_state = self.solver.next();
+                let start = std::time::Instant::now();
+                for _ in 0..a_star::STEPS_PER_FRAME {
+                    let _solver_state = self.solver.next();
+                }
+                let duration = start.elapsed();
+                println!("update: {}", duration.as_millis());
 
-                let solver_grid = self.solver.inspect();
-                let size = self.solver.maze().size;
-                let gray_img = GrayImage::from_raw(size.width, size.height, solver_grid).unwrap();
+                let maze_img = maze_image(&self.solver);
 
-                let mut palette: Vec<(u8, u8, u8)> = Vec::new();
-                palette.resize(256, (0, 0, 0));
-                palette[0] = (0, 0, 0); // free is black
-                palette[1] = (255, 0, 0); // wall is red
-                palette[2] = (0, 255, 0); // checked is green
-                palette[3] = (255, 255, 0); // queued is yellow
-                palette[4] = (0, 255, 255); // source is cyan
-                palette[5] = (255, 0, 255); // destination is purple
+                let start = std::time::Instant::now();
+                let animation = if self.animation.is_none() {
+                    self.animation = Some(Animation::new("maze", ctx, &maze_img));
+                    self.animation.as_ref().unwrap()
+                } else {
+                    let animation = self.animation.as_mut().unwrap();
+                    animation.update(&maze_img);
+                    animation
+                };
+                let duration = start.elapsed();
+                println!("animation: {}", duration.as_millis());
 
-                let mut rgba_img: RgbaImage = gray_img.expand_palette(&palette[..], None);
+                let start = std::time::Instant::now();
+                let egui_img =
+                    egui::Image::new(animation.texture(), animation.texture().size_vec2());
+                let duration = start.elapsed();
+                println!("add img: {}", duration.as_millis());
 
-                rgba_img = image::imageops::resize(
-                    &rgba_img,
-                    size.width * 8,
-                    size.height * 8,
-                    image::imageops::FilterType::Nearest,
-                );
-
-                let img = ColorImage::from_rgba_unmultiplied(
-                    [rgba_img.height() as usize, rgba_img.width() as usize],
-                    &rgba_img.as_raw().as_slice(),
-                );
-
-                let texture = ctx.load_texture("vis-area", img);
-                ui.add(egui::Image::new(&texture, texture.size_vec2()));
+                ui.add(egui_img);
 
                 // ui.add(egui::Slider::new(&mut self.progress, 0..=100).text("progress"));
 
