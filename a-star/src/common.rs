@@ -33,6 +33,12 @@ impl Point {
     }
 }
 
+impl Size {
+    pub fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
 impl Rect {
     pub fn of_size(size: Size) -> Rect {
         Rect {

@@ -7,8 +7,14 @@ use a_star::maze::Maze;
 use a_star::maze::SparsePointSet;
 use a_star::solvers::{AStarSolver, Solver};
 
+use a_star::traits::solver::SearchState;
 use eframe::egui;
+use eframe::epaint::mutex::RwLock;
 use rand::Rng;
+use std::borrow::{Borrow, BorrowMut};
+use std::ops::Add;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 fn main() {
     let options = eframe::NativeOptions::default();
@@ -20,8 +26,11 @@ fn main() {
 }
 
 struct MyApp {
-    solver: AStarSolver,
+    solver: Arc<Mutex<AStarSolver>>,
+    progress: Arc<RwLock<u32>>,
     animation: Option<Animation>,
+    solver_thread: Option<std::thread::JoinHandle<()>>,
+    update_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Default for MyApp {
@@ -47,10 +56,14 @@ impl Default for MyApp {
         let points_set = Box::new(SparsePointSet::new(walls));
 
         let maze = Maze::new(size, points_set);
+        let solver = AStarSolver::new(maze, source, destination);
 
         Self {
-            solver: AStarSolver::new(maze, source, destination),
+            solver: Arc::new(Mutex::new(solver)),
+            progress: Arc::new(RwLock::new(0)),
             animation: None,
+            solver_thread: None,
+            update_thread: None,
         }
     }
 }
@@ -63,30 +76,19 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let title = "WinDow";
 
-        // let stroke_color = ctx.style().visuals.text_color();
-
-        // Height of the visualization area
-        // let canvas_height = 480.0;
-
         egui::CentralPanel::default()
             // .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 ui.heading(title);
 
+                let mut solver = self.solver.lock().unwrap();
+
                 if ui.button("restart").clicked() {
-                    self.solver.restart();
+                    solver.restart();
                 }
 
-                let start = std::time::Instant::now();
-                for _ in 0..a_star::STEPS_PER_FRAME {
-                    let _solver_state = self.solver.next();
-                }
-                let duration = start.elapsed();
-                println!("update: {}", duration.as_millis());
+                let maze_img = maze_image(&*solver);
 
-                let maze_img = maze_image(&self.solver);
-
-                let start = std::time::Instant::now();
                 let animation = if self.animation.is_none() {
                     self.animation = Some(Animation::new("maze", ctx, &maze_img));
                     self.animation.as_ref().unwrap()
@@ -95,43 +97,47 @@ impl eframe::App for MyApp {
                     animation.update(&maze_img);
                     animation
                 };
-                let duration = start.elapsed();
-                println!("animation: {}", duration.as_millis());
 
-                let start = std::time::Instant::now();
                 let egui_img =
                     egui::Image::new(animation.texture(), animation.texture().size_vec2());
-                let duration = start.elapsed();
-                println!("add img: {}", duration.as_millis());
 
                 ui.add(egui_img);
 
-                // ui.add(egui::Slider::new(&mut self.progress, 0..=100).text("progress"));
+                let checked = *self.progress.read();
+                let total = animation.size().area();
+                ui.add(egui::ProgressBar::new(checked as f32 / total as f32));
 
-                // let desired_size = egui::vec2(canvas_height, canvas_height);
-                // let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::hover());
+                // let pr_clone = self.progress.cl
 
-                // if response.hovered() {}
+                let current_progress = self.progress.clone();
+                if self.solver_thread.is_none() {
+                    let mutex = self.solver.clone();
+                    self.solver_thread = Some(std::thread::spawn(move || loop {
+                        std::thread::sleep(std::time::Duration::from_millis(
+                            1000 / a_star::SOLVER_STEPS_PER_SECOND,
+                        ));
 
-                // let painter = ui.painter();
+                        let mut solver = mutex.lock().unwrap();
 
-                // // Paint the frame:
-                // painter.rect(
-                //     rect,
-                //     5.0,
-                //     ctx.style().visuals.window_fill(),
-                //     egui::Stroke::new(1.0, stroke_color),
-                // );
+                        for _ in 0..10 {
+                            let solver_state = (&mut *solver).next();
 
-                // let stroke = egui::Stroke::new(1.0, stroke_color);
-                // for _ in 0..=self.progress {
-                //     let progress = self.progress as f32 / 100.0;
-                //     let shift = egui::vec2(progress * rect.width(), 0.0);
-                //     painter.line_segment(
-                //         [rect.left_top() + shift, rect.left_bottom() + shift],
-                //         stroke,
-                //     )
-                // }
+                            if let SearchState::Progress(progress) = solver_state {
+                                *current_progress.write() = progress.checked;
+                            } else {
+                                break;
+                            }
+                        }
+                    }));
+                }
+
+                if self.update_thread.is_none() {
+                    let ctx_clone = ctx.clone();
+                    self.update_thread = Some(std::thread::spawn(move || loop {
+                        std::thread::sleep(std::time::Duration::from_millis(30));
+                        ctx_clone.request_repaint();
+                    }));
+                }
             });
     }
 }

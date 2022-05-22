@@ -12,7 +12,7 @@ pub fn maze_image(solver: &impl Solver) -> RgbaImage {
     palette[1] = (255, 0, 0); // wall is red
     palette[2] = (0, 255, 0); // checked is green
     palette[3] = (255, 255, 0); // queued is yellow
-    palette[4] = (0, 255, 255); // source is cyan
+    palette[4] = (0, 0, 255); // source is blue
     palette[5] = (255, 0, 255); // destination is purple
 
     let mut rgba_img: RgbaImage = gray_img.expand_palette(&palette[..], None);

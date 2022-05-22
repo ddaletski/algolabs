@@ -12,4 +12,4 @@ pub const MAZE_SIZE: Size = Size {
     height: MS,
 };
 pub const CELL_SCALE: u32 = 4;
-pub const STEPS_PER_FRAME: u32 = 10;
+pub const SOLVER_STEPS_PER_SECOND: u64 = 100;

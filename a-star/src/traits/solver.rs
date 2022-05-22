@@ -27,8 +27,8 @@ impl From<u8> for CellState {
 }
 
 pub struct Progress {
-    pub in_queue: usize,
-    pub checked: usize,
+    pub in_queue: u32,
+    pub checked: u32,
 }
 
 pub enum SearchState {

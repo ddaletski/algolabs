@@ -34,11 +34,11 @@ impl PointSet for SparsePointSet {
 
 pub struct Maze {
     pub size: Size,
-    pub points: Box<dyn PointSet>,
+    pub points: Box<dyn PointSet + Send>,
 }
 
 impl Maze {
-    pub fn new(size: Size, points_provider: Box<dyn PointSet>) -> Maze {
+    pub fn new(size: Size, points_provider: Box<dyn PointSet + Send>) -> Maze {
         Maze {
             size,
             points: points_provider,

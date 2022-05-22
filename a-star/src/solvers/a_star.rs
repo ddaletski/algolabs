@@ -112,8 +112,8 @@ impl Solver for AStarSolver {
         }
 
         SearchState::Progress(Progress {
-            in_queue: self.queue.len(),
-            checked: self.checked.len(),
+            in_queue: self.queue.len() as u32,
+            checked: self.checked.len() as u32,
         })
     }
 
