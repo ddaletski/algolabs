@@ -21,8 +21,15 @@ pub struct Rect {
 }
 
 impl Point {
-    pub fn distance_l1(&self, other: &Point) -> u32 {
-        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    pub fn distance_l1(&self, other: &Point) -> f32 {
+        (self.x.abs_diff(other.x) + self.y.abs_diff(other.y)) as f32
+    }
+
+    pub fn distance_l2(&self, other: &Point) -> f32 {
+        let dx = (self.x - other.x) as f32;
+        let dy = (self.y - other.y) as f32;
+
+        return f32::sqrt(dx * dx + dy * dy);
     }
 
     pub fn shift(&self, x: i32, y: i32) -> Point {

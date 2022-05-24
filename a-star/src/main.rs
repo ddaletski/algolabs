@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use a_star::common::{Point, Size};
+use a_star::common::Point;
 use a_star::gui::animation::Animation;
 use a_star::gui::utils::maze_image;
 use a_star::maze::Maze;
@@ -9,12 +9,8 @@ use a_star::solvers::{AStarSolver, Solver};
 
 use a_star::traits::solver::SearchState;
 use eframe::egui;
-use eframe::epaint::mutex::RwLock;
 use rand::Rng;
-use std::borrow::{Borrow, BorrowMut};
-use std::ops::Add;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, RwLock};
 
 fn main() {
     let options = eframe::NativeOptions::default();
@@ -26,7 +22,7 @@ fn main() {
 }
 
 struct MyApp {
-    solver: Arc<Mutex<AStarSolver>>,
+    solver: Arc<RwLock<AStarSolver>>,
     progress: Arc<RwLock<u32>>,
     animation: Option<Animation>,
     solver_thread: Option<std::thread::JoinHandle<()>>,
@@ -53,13 +49,13 @@ impl Default for MyApp {
             })
             .filter(|&p| p != source && p != destination);
 
-        let points_set = Box::new(SparsePointSet::new(walls));
+        let points_set = SparsePointSet::new(walls);
 
         let maze = Maze::new(size, points_set);
         let solver = AStarSolver::new(maze, source, destination);
 
         Self {
-            solver: Arc::new(Mutex::new(solver)),
+            solver: Arc::new(RwLock::new(solver)),
             progress: Arc::new(RwLock::new(0)),
             animation: None,
             solver_thread: None,
@@ -81,12 +77,12 @@ impl eframe::App for MyApp {
             .show(ctx, |ui| {
                 ui.heading(title);
 
-                let mut solver = self.solver.lock().unwrap();
-
                 if ui.button("restart").clicked() {
+                    let mut solver = self.solver.write().unwrap();
                     solver.restart();
                 }
 
+                let solver = self.solver.read().unwrap();
                 let maze_img = maze_image(&*solver);
 
                 let animation = if self.animation.is_none() {
@@ -103,7 +99,7 @@ impl eframe::App for MyApp {
 
                 ui.add(egui_img);
 
-                let checked = *self.progress.read();
+                let checked = *self.progress.read().unwrap();
                 let total = animation.size().area();
                 ui.add(egui::ProgressBar::new(checked as f32 / total as f32));
 
@@ -111,19 +107,19 @@ impl eframe::App for MyApp {
 
                 let current_progress = self.progress.clone();
                 if self.solver_thread.is_none() {
-                    let mutex = self.solver.clone();
+                    let solver_guard = self.solver.clone();
                     self.solver_thread = Some(std::thread::spawn(move || loop {
                         std::thread::sleep(std::time::Duration::from_millis(
-                            1000 / a_star::SOLVER_STEPS_PER_SECOND,
+                            1000 / a_star::SOLVER_TICKS_PER_SECOND,
                         ));
 
-                        let mut solver = mutex.lock().unwrap();
+                        let mut solver = solver_guard.write().unwrap();
 
-                        for _ in 0..10 {
+                        for _ in 0..a_star::SOLVER_STEPS_PER_TICK {
                             let solver_state = (&mut *solver).next();
 
                             if let SearchState::Progress(progress) = solver_state {
-                                *current_progress.write() = progress.checked;
+                                *current_progress.write().unwrap() = progress.checked;
                             } else {
                                 break;
                             }

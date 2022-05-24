@@ -2,30 +2,43 @@ use std::collections::{BinaryHeap, HashSet};
 
 use crate::common::{Point, Rect};
 use crate::maze::{Maze, NodeType};
-pub use crate::traits::Solver;
 use crate::traits::solver::{CellState, Progress, SearchState};
+pub use crate::traits::Solver;
 
 struct QueueEntry {
-    cost: u32,
+    cost: f32,
     point: Point,
+    destination: Point,
+    index_number: u32
+}
+
+impl QueueEntry {
+    pub fn priority(&self) -> i32 {
+        let dist_func = Point::distance_l1;
+
+        let remaining_estimate = dist_func(&self.point, &self.destination);
+        let current_cost = self.cost;
+        let recentness_discount = (0.1 * self.index_number as f32) as i32;
+        -(current_cost + remaining_estimate) as i32 + recentness_discount
+    }
 }
 
 impl PartialEq for QueueEntry {
     fn eq(&self, other: &Self) -> bool {
-        return self.cost == other.cost;
+        self.point == other.point
     }
 }
 impl Eq for QueueEntry {}
 
 impl PartialOrd for QueueEntry {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        u32::partial_cmp(&self.cost, &other.cost)
+        i32::partial_cmp(&self.priority(), &other.priority())
     }
 }
 
 impl Ord for QueueEntry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        u32::cmp(&self.cost, &other.cost)
+        i32::cmp(&self.priority(), &other.priority())
     }
 }
 
@@ -36,6 +49,7 @@ pub struct AStarSolver {
     checked: HashSet<Point>,
     queue: BinaryHeap<QueueEntry>,
     found: bool,
+    max_index: u32
 }
 
 impl Solver for AStarSolver {
@@ -47,6 +61,7 @@ impl Solver for AStarSolver {
             checked: HashSet::new(),
             queue: BinaryHeap::new(),
             found: false,
+            max_index: 0
         };
 
         solver.restart();
@@ -96,7 +111,12 @@ impl Solver for AStarSolver {
             }
         }
 
-        let QueueEntry { cost, point } = self.queue.pop().unwrap();
+        let QueueEntry {
+            cost,
+            point,
+            destination: _,
+            index_number: _
+        } = self.queue.pop().unwrap();
 
         if point == self.destination {
             self.found = true;
@@ -105,10 +125,10 @@ impl Solver for AStarSolver {
         } else if !self.checked.contains(&point) {
             self.checked.insert(point);
 
-            self.add_candidate(point.shift(1, 0), cost);
-            self.add_candidate(point.shift(-1, 0), cost);
-            self.add_candidate(point.shift(0, 1), cost);
-            self.add_candidate(point.shift(0, -1), cost);
+            self.add_candidate(point.shift(1, 0), cost + 1.0);
+            self.add_candidate(point.shift(-1, 0), cost + 1.0);
+            self.add_candidate(point.shift(0, 1), cost + 1.0);
+            self.add_candidate(point.shift(0, -1), cost + 1.0);
         }
 
         SearchState::Progress(Progress {
@@ -122,7 +142,7 @@ impl Solver for AStarSolver {
         self.checked.clear();
         self.found = false;
 
-        self.add_candidate(self.source, 0);
+        self.add_candidate(self.source, 0.0);
     }
 
     fn maze(&self) -> &Maze {
@@ -131,12 +151,7 @@ impl Solver for AStarSolver {
 }
 
 impl AStarSolver {
-    fn cost(&self, point: &Point) -> u32 {
-        // self.destination.distance_l1(&point)
-        0
-    }
-
-    fn add_candidate(&mut self, point: Point, current_cost: u32) {
+    fn add_candidate(&mut self, point: Point, current_cost: f32) {
         // skip cached
         if self.checked.contains(&point) {
             return;
@@ -149,11 +164,16 @@ impl AStarSolver {
         }
 
         // skip walls
-        if let NodeType::Wall = self.maze.points.as_ref().get(&point) {
+        if let NodeType::Wall = self.maze.points.get(&point) {
             return;
         };
 
-        let cost = self.cost(&point) + current_cost;
-        self.queue.push(QueueEntry { cost, point });
+        self.queue.push(QueueEntry {
+            cost: current_cost,
+            point,
+            destination: self.destination,
+            index_number: self.max_index
+        });
+        self.max_index += 1;
     }
 }

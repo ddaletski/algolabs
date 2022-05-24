@@ -6,10 +6,6 @@ pub enum NodeType {
     Wall,
 }
 
-pub trait PointSet {
-    fn get(&self, coord: &Point) -> NodeType;
-}
-
 pub struct SparsePointSet {
     walls: HashSet<Point>,
 }
@@ -20,10 +16,8 @@ impl SparsePointSet {
             walls: walls.collect(),
         }
     }
-}
 
-impl PointSet for SparsePointSet {
-    fn get(&self, coord: &Point) -> NodeType {
+    pub fn get(&self, coord: &Point) -> NodeType {
         if self.walls.contains(coord) {
             NodeType::Wall
         } else {
@@ -34,14 +28,11 @@ impl PointSet for SparsePointSet {
 
 pub struct Maze {
     pub size: Size,
-    pub points: Box<dyn PointSet + Send>,
+    pub points: SparsePointSet,
 }
 
 impl Maze {
-    pub fn new(size: Size, points_provider: Box<dyn PointSet + Send>) -> Maze {
-        Maze {
-            size,
-            points: points_provider,
-        }
+    pub fn new(size: Size, points: SparsePointSet) -> Maze {
+        Maze { size, points }
     }
 }
