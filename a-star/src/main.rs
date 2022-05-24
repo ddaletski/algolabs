@@ -5,7 +5,7 @@ use a_star::gui::animation::Animation;
 use a_star::gui::utils::maze_image;
 use a_star::maze::Maze;
 use a_star::maze::SparsePointSet;
-use a_star::solvers::{AStarSolver, Solver};
+use a_star::solvers::{AStarSolver, GreedySolver, Solver};
 
 use a_star::traits::solver::SearchState;
 use eframe::egui;
@@ -21,8 +21,36 @@ fn main() {
     );
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum SolverAlgorithm {
+    Greedy,
+    AStar,
+}
+
+impl SolverAlgorithm {
+    fn name(&self) -> &str {
+        match self {
+            SolverAlgorithm::Greedy => "Greedy",
+            SolverAlgorithm::AStar => "A*",
+        }
+    }
+    fn create(&self, maze: Maze) -> Arc<RwLock<dyn Solver + Send + Sync>> {
+        match self {
+            SolverAlgorithm::AStar => {
+                let solver = AStarSolver::new(maze);
+                Arc::new(RwLock::new(solver))
+            }
+            SolverAlgorithm::Greedy => {
+                let solver = GreedySolver::new(maze);
+                Arc::new(RwLock::new(solver))
+            }
+        }
+    }
+}
+
 struct MyApp {
-    solver: Arc<RwLock<AStarSolver>>,
+    algorithm: SolverAlgorithm,
+    solver: Arc<RwLock<dyn Solver + Send + Sync>>,
     progress: Arc<RwLock<u32>>,
     animation: Option<Animation>,
     solver_thread: Option<std::thread::JoinHandle<()>>,
@@ -51,11 +79,13 @@ impl Default for MyApp {
 
         let points_set = SparsePointSet::new(walls);
 
-        let maze = Maze::new(size, points_set);
-        let solver = AStarSolver::new(maze, source, destination);
+        let maze = Maze::new(size, points_set, source, destination);
+
+        let algorithm = SolverAlgorithm::Greedy;
 
         Self {
-            solver: Arc::new(RwLock::new(solver)),
+            algorithm: algorithm,
+            solver: algorithm.create(maze),
             progress: Arc::new(RwLock::new(0)),
             animation: None,
             solver_thread: None,
@@ -64,11 +94,16 @@ impl Default for MyApp {
     }
 }
 
-impl eframe::App for MyApp {
-    fn clear_color(&self, _visuals: &egui::Visuals) -> egui::Rgba {
-        egui::Rgba::TRANSPARENT // Make sure we don't paint anything behind the rounded corners
-    }
+impl MyApp {
+    fn set_alg(&mut self, algorithm: SolverAlgorithm) {
+        let maze = self.solver.read().unwrap().maze().clone();
 
+        self.solver = algorithm.create(maze);
+        self.algorithm = algorithm;
+    }
+}
+
+impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let title = "WinDow";
 
@@ -76,6 +111,26 @@ impl eframe::App for MyApp {
             // .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 ui.heading(title);
+
+                {
+                    let last_alg = self.algorithm;
+                    let mut selected_alg = self.algorithm;
+
+                    egui::ComboBox::from_label("Select one!")
+                        .selected_text(format!("{:?}", selected_alg.name()))
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
+                            ui.selectable_value(
+                                &mut selected_alg,
+                                SolverAlgorithm::Greedy,
+                                "Greedy",
+                            );
+                        });
+
+                    if selected_alg != last_alg {
+                        self.set_alg(selected_alg);
+                    }
+                }
 
                 if ui.button("restart").clicked() {
                     let mut solver = self.solver.write().unwrap();
@@ -109,6 +164,8 @@ impl eframe::App for MyApp {
                 if self.solver_thread.is_none() {
                     let solver_guard = self.solver.clone();
                     self.solver_thread = Some(std::thread::spawn(move || loop {
+                        // TODO: stop and join thread when other algorithm is selected
+                        // and then recreate the thread
                         std::thread::sleep(std::time::Duration::from_millis(
                             1000 / a_star::SOLVER_TICKS_PER_SECOND,
                         ));

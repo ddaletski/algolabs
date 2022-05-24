@@ -1,62 +1,24 @@
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::HashSet;
 
 use crate::common::{Point, Rect};
 use crate::maze::{Maze, NodeType};
 use crate::traits::solver::{CellState, Progress, SearchState};
 pub use crate::traits::Solver;
 
-struct QueueEntry {
-    cost: f32,
-    point: Point,
-    destination: Point,
-    index_number: u32,
-}
-
-impl QueueEntry {
-    pub fn priority(&self) -> i32 {
-        let dist_func = Point::distance_l1;
-
-        let remaining_estimate = dist_func(&self.point, &self.destination);
-        let current_cost = self.cost;
-        let recentness_discount = (0.1 * self.index_number as f32) as i32;
-        -(current_cost + remaining_estimate) as i32 + recentness_discount
-    }
-}
-
-impl PartialEq for QueueEntry {
-    fn eq(&self, other: &Self) -> bool {
-        self.point == other.point
-    }
-}
-impl Eq for QueueEntry {}
-
-impl PartialOrd for QueueEntry {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        i32::partial_cmp(&self.priority(), &other.priority())
-    }
-}
-
-impl Ord for QueueEntry {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        i32::cmp(&self.priority(), &other.priority())
-    }
-}
-
-pub struct AStarSolver {
+pub struct GreedySolver {
     maze: Maze,
     checked: HashSet<Point>,
-    queue: BinaryHeap<QueueEntry>,
+    stack: Vec<Point>,
     found: bool,
-    max_index: u32,
 }
 
-impl Solver for AStarSolver {
+impl Solver for GreedySolver {
     fn inspect(&self) -> Vec<u8> {
         let size = &self.maze.size;
         let mut grid: Vec<u8> = Vec::new();
         grid.resize(size.width as usize * size.height as usize, 0 as u8);
 
-        let queued: HashSet<Point> = self.queue.iter().map(|it| it.point).collect();
+        let queued: HashSet<Point> = self.stack.clone().into_iter().collect();
 
         for y in 0..size.height as usize {
             let skip = y * size.width as usize;
@@ -85,7 +47,7 @@ impl Solver for AStarSolver {
     }
 
     fn next(&mut self) -> SearchState {
-        if self.queue.is_empty() {
+        if self.stack.is_empty() {
             if self.found {
                 return SearchState::Found;
             } else {
@@ -93,38 +55,40 @@ impl Solver for AStarSolver {
             }
         }
 
-        let QueueEntry {
-            cost,
-            point,
-            destination: _,
-            index_number: _,
-        } = self.queue.pop().unwrap();
+        let current = self.stack.pop().unwrap();
 
-        if point == self.maze().destination {
+        if current == self.maze().destination {
             self.found = true;
-            self.queue.clear();
+            self.stack.clear();
             return SearchState::Found;
-        } else if !self.checked.contains(&point) {
-            self.checked.insert(point);
+        } else if !self.checked.contains(&current) {
+            self.checked.insert(current);
 
-            self.add_candidate(point.shift(1, 0), cost + 1.0);
-            self.add_candidate(point.shift(-1, 0), cost + 1.0);
-            self.add_candidate(point.shift(0, 1), cost + 1.0);
-            self.add_candidate(point.shift(0, -1), cost + 1.0);
+            let left = current.shift(-1, 0);
+            let right = current.shift(1, 0);
+            let down = current.shift(0, 1);
+            let up = current.shift(0, -1);
+
+            let mut candidates = [left, right, down, up];
+            candidates.sort_by_key(|&p| -p.distance_l2(&self.maze().destination) as i32);
+
+            for candidate in candidates {
+                self.add_candidate(candidate);
+            }
         }
 
         SearchState::Progress(Progress {
-            in_queue: self.queue.len() as u32,
+            in_queue: self.stack.len() as u32,
             checked: self.checked.len() as u32,
         })
     }
 
     fn restart(&mut self) {
-        self.queue.clear();
+        self.stack.clear();
         self.checked.clear();
         self.found = false;
 
-        self.add_candidate(self.maze().source, 0.0);
+        self.add_candidate(self.maze().source);
     }
 
     fn maze(&self) -> &Maze {
@@ -132,14 +96,13 @@ impl Solver for AStarSolver {
     }
 }
 
-impl AStarSolver {
+impl GreedySolver {
     pub fn new(maze: Maze) -> Self {
         let mut solver = Self {
             maze,
             checked: HashSet::new(),
-            queue: BinaryHeap::new(),
+            stack: Vec::new(),
             found: false,
-            max_index: 0,
         };
 
         solver.restart();
@@ -147,7 +110,7 @@ impl AStarSolver {
         solver
     }
 
-    fn add_candidate(&mut self, point: Point, current_cost: f32) {
+    fn add_candidate(&mut self, point: Point) {
         // skip cached
         if self.checked.contains(&point) {
             return;
@@ -164,12 +127,6 @@ impl AStarSolver {
             return;
         };
 
-        self.queue.push(QueueEntry {
-            cost: current_cost,
-            point,
-            destination: self.maze().destination,
-            index_number: self.max_index,
-        });
-        self.max_index += 1;
+        self.stack.push(point);
     }
 }

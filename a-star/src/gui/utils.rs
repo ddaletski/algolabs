@@ -1,7 +1,7 @@
 use crate::traits::Solver;
 use image::{GrayImage, RgbaImage};
 
-pub fn maze_image(solver: &impl Solver) -> RgbaImage {
+pub fn maze_image(solver: &dyn Solver) -> RgbaImage {
     let solver_grid = solver.inspect();
     let size = solver.maze().size;
     let gray_img = GrayImage::from_raw(size.width, size.height, solver_grid).unwrap();

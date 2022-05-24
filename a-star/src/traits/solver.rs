@@ -38,8 +38,6 @@ pub enum SearchState {
 }
 
 pub trait Solver {
-    fn new(maze: Maze, source: Point, destination: Point) -> Self;
-
     /// grid data in row-major (C-style) order
     /// every cell u8 value corresponds to CellState value
     fn inspect(&self) -> Vec<u8>;

@@ -6,6 +6,7 @@ pub enum NodeType {
     Wall,
 }
 
+#[derive(Clone)]
 pub struct SparsePointSet {
     walls: HashSet<Point>,
 }
@@ -26,13 +27,16 @@ impl SparsePointSet {
     }
 }
 
+#[derive(Clone)]
 pub struct Maze {
     pub size: Size,
     pub points: SparsePointSet,
+    pub source: Point,
+    pub destination: Point
 }
 
 impl Maze {
-    pub fn new(size: Size, points: SparsePointSet) -> Maze {
-        Maze { size, points }
+    pub fn new(size: Size, points: SparsePointSet, source: Point, destination: Point) -> Maze {
+        Maze { size, points, source, destination }
     }
 }
