@@ -10,6 +10,7 @@ use a_star::solvers::{AStarSolver, GreedySolver, Solver};
 use a_star::traits::solver::SearchState;
 use eframe::egui;
 use rand::Rng;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 
 fn main() {
@@ -55,6 +56,7 @@ struct MyApp {
     animation: Option<Animation>,
     solver_thread: Option<std::thread::JoinHandle<()>>,
     update_thread: Option<std::thread::JoinHandle<()>>,
+    solver_running: Arc<AtomicBool>,
 }
 
 impl Default for MyApp {
@@ -83,23 +85,59 @@ impl Default for MyApp {
 
         let algorithm = SolverAlgorithm::Greedy;
 
-        Self {
+        let mut app = Self {
             algorithm: algorithm,
             solver: algorithm.create(maze),
             progress: Arc::new(RwLock::new(0)),
             animation: None,
             solver_thread: None,
             update_thread: None,
-        }
+            solver_running: Arc::new(AtomicBool::new(false)),
+        };
+
+        app.set_alg(algorithm);
+
+        app
     }
 }
 
 impl MyApp {
     fn set_alg(&mut self, algorithm: SolverAlgorithm) {
-        let maze = self.solver.read().unwrap().maze().clone();
+        if let Some(old_thread) = self.solver_thread.take() {
+            if self.solver_running.load(Ordering::Acquire) {
+                self.solver_running.store(false, Ordering::Release);
+                old_thread.join().unwrap();
+            }
+        }
+        self.solver_running.store(true, Ordering::Release);
 
+        let maze = self.solver.read().unwrap().maze().clone();
         self.solver = algorithm.create(maze);
         self.algorithm = algorithm;
+
+        let switch_guard = self.solver_running.clone();
+        let solver_guard = self.solver.clone();
+        let current_progress = self.progress.clone();
+        self.solver_thread = Some(std::thread::spawn(move || {
+            while switch_guard.load(Ordering::Relaxed) {
+                let solver_state = {
+                    let mut solver = solver_guard.write().unwrap();
+
+                    (0..a_star::SOLVER_STEPS_PER_TICK)
+                        .map(|_| solver.next())
+                        .last().unwrap()
+                };
+
+                if let SearchState::Progress(progress) = solver_state {
+                    *current_progress.write().unwrap() = progress.checked;
+                } else {
+                    continue;
+                }
+
+                let sleep_duration = 1000 / a_star::SOLVER_TICKS_PER_SECOND;
+                std::thread::sleep(std::time::Duration::from_millis(sleep_duration));
+            }
+        }));
     }
 }
 
@@ -107,38 +145,35 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let title = "WinDow";
 
-        egui::CentralPanel::default()
-            // .frame(egui::Frame::none())
-            .show(ctx, |ui| {
-                ui.heading(title);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading(title);
 
-                {
-                    let last_alg = self.algorithm;
-                    let mut selected_alg = self.algorithm;
+            if self.solver_running.load(Ordering::Relaxed) {
+                let last_alg = self.algorithm;
+                let mut selected_alg = last_alg;
 
-                    egui::ComboBox::from_label("Select one!")
-                        .selected_text(format!("{:?}", selected_alg.name()))
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
-                            ui.selectable_value(
-                                &mut selected_alg,
-                                SolverAlgorithm::Greedy,
-                                "Greedy",
-                            );
-                        });
+                egui::ComboBox::from_label("Select one!")
+                    .selected_text(format!("{:?}", selected_alg.name()))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
+                        ui.selectable_value(&mut selected_alg, SolverAlgorithm::Greedy, "Greedy");
+                    });
 
-                    if selected_alg != last_alg {
-                        self.set_alg(selected_alg);
-                    }
+                if selected_alg != last_alg {
+                    self.set_alg(selected_alg);
                 }
+            }
 
-                if ui.button("restart").clicked() {
-                    let mut solver = self.solver.write().unwrap();
-                    solver.restart();
-                }
+            if ui.button("restart").clicked() {
+                let mut solver = self.solver.write().unwrap();
+                solver.restart();
+            }
 
-                let solver = self.solver.read().unwrap();
-                let maze_img = maze_image(&*solver);
+            if self.solver_running.load(Ordering::Relaxed) {
+                let maze_img = {
+                    let solver = self.solver.read().unwrap();
+                    maze_image(&*solver)
+                };
 
                 let animation = if self.animation.is_none() {
                     self.animation = Some(Animation::new("maze", ctx, &maze_img));
@@ -157,40 +192,19 @@ impl eframe::App for MyApp {
                 let checked = *self.progress.read().unwrap();
                 let total = animation.size().area();
                 ui.add(egui::ProgressBar::new(checked as f32 / total as f32));
+            }
 
-                // let pr_clone = self.progress.cl
-
-                let current_progress = self.progress.clone();
-                if self.solver_thread.is_none() {
-                    let solver_guard = self.solver.clone();
-                    self.solver_thread = Some(std::thread::spawn(move || loop {
-                        // TODO: stop and join thread when other algorithm is selected
-                        // and then recreate the thread
-                        std::thread::sleep(std::time::Duration::from_millis(
-                            1000 / a_star::SOLVER_TICKS_PER_SECOND,
-                        ));
-
-                        let mut solver = solver_guard.write().unwrap();
-
-                        for _ in 0..a_star::SOLVER_STEPS_PER_TICK {
-                            let solver_state = (&mut *solver).next();
-
-                            if let SearchState::Progress(progress) = solver_state {
-                                *current_progress.write().unwrap() = progress.checked;
-                            } else {
-                                break;
-                            }
-                        }
-                    }));
-                }
-
-                if self.update_thread.is_none() {
-                    let ctx_clone = ctx.clone();
-                    self.update_thread = Some(std::thread::spawn(move || loop {
-                        std::thread::sleep(std::time::Duration::from_millis(30));
-                        ctx_clone.request_repaint();
-                    }));
-                }
-            });
+            if self.update_thread.is_none() {
+                let ctx_clone = ctx.clone();
+                self.update_thread = Some(std::thread::spawn(move || loop {
+                    std::thread::sleep(std::time::Duration::from_millis(30));
+                    ctx_clone.request_repaint();
+                }));
+            }
+        });
     }
+}
+
+impl MyApp {
+    fn start_solver_thread(&mut self) {}
 }
