@@ -5,7 +5,7 @@ use a_star::gui::animation::Animation;
 use a_star::gui::utils::maze_image;
 use a_star::maze::Maze;
 use a_star::maze::SparsePointSet;
-use a_star::solvers::{AStarSolver, GreedySolver, Solver};
+use a_star::solvers::{AStarSolver, BFSSolver, DFSSolver, GreedySolver, Solver};
 
 use a_star::traits::solver::SearchState;
 use eframe::egui;
@@ -27,6 +27,8 @@ fn main() {
 enum SolverAlgorithm {
     Greedy,
     AStar,
+    BFS,
+    DFS,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -40,8 +42,11 @@ impl SolverAlgorithm {
         match self {
             SolverAlgorithm::Greedy => "Greedy",
             SolverAlgorithm::AStar => "A*",
+            SolverAlgorithm::BFS => "BFS",
+            SolverAlgorithm::DFS => "DFS",
         }
     }
+
     fn create(&self, maze: Maze) -> Box<dyn Solver + Send + Sync> {
         match self {
             SolverAlgorithm::AStar => {
@@ -50,6 +55,14 @@ impl SolverAlgorithm {
             }
             SolverAlgorithm::Greedy => {
                 let solver = GreedySolver::new(maze);
+                Box::new(solver)
+            }
+            SolverAlgorithm::BFS => {
+                let solver = BFSSolver::new(maze);
+                Box::new(solver)
+            }
+            SolverAlgorithm::DFS => {
+                let solver = DFSSolver::new(maze);
                 Box::new(solver)
             }
         }
@@ -170,7 +183,7 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let title = "WinDow";
+        let title = "Maze Solver";
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading(title);
@@ -178,11 +191,16 @@ impl eframe::App for MyApp {
             let last_alg = self.algorithm;
             let mut selected_alg = last_alg;
 
-            egui::ComboBox::from_label("Select one!")
+            egui::ComboBox::from_label("algorithm")
                 .selected_text(format!("{:?}", selected_alg.name()))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
-                    ui.selectable_value(&mut selected_alg, SolverAlgorithm::Greedy, "Greedy");
+                    let mut add_alg = |alg| {
+                        ui.selectable_value(&mut selected_alg, alg, alg.name());
+                    };
+                    add_alg(SolverAlgorithm::AStar);
+                    add_alg(SolverAlgorithm::Greedy);
+                    add_alg(SolverAlgorithm::BFS);
+                    add_alg(SolverAlgorithm::DFS);
                 });
 
             if selected_alg != last_alg {
