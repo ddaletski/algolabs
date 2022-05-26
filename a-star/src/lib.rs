@@ -3,6 +3,7 @@ pub mod gui;
 pub mod maze;
 pub mod solvers;
 pub mod traits;
+pub mod config;
 
 use common::Size;
 

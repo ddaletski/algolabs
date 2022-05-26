@@ -11,8 +11,6 @@ use a_star::traits::solver::SearchState;
 use eframe::egui;
 use image::RgbaImage;
 use rand::Rng;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
 fn main() {
     let options = eframe::NativeOptions::default();
