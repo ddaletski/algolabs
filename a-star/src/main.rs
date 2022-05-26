@@ -9,9 +9,10 @@ use a_star::solvers::{AStarSolver, GreedySolver, Solver};
 
 use a_star::traits::solver::SearchState;
 use eframe::egui;
+use image::RgbaImage;
 use rand::Rng;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 fn main() {
     let options = eframe::NativeOptions::default();
@@ -28,6 +29,12 @@ enum SolverAlgorithm {
     AStar,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Command {
+    Stop,
+    Restart,
+}
+
 impl SolverAlgorithm {
     fn name(&self) -> &str {
         match self {
@@ -35,28 +42,29 @@ impl SolverAlgorithm {
             SolverAlgorithm::AStar => "A*",
         }
     }
-    fn create(&self, maze: Maze) -> Arc<RwLock<dyn Solver + Send + Sync>> {
+    fn create(&self, maze: Maze) -> Box<dyn Solver + Send + Sync> {
         match self {
             SolverAlgorithm::AStar => {
                 let solver = AStarSolver::new(maze);
-                Arc::new(RwLock::new(solver))
+                Box::new(solver)
             }
             SolverAlgorithm::Greedy => {
                 let solver = GreedySolver::new(maze);
-                Arc::new(RwLock::new(solver))
+                Box::new(solver)
             }
         }
     }
 }
 
 struct MyApp {
+    maze: Maze,
     algorithm: SolverAlgorithm,
-    solver: Arc<RwLock<dyn Solver + Send + Sync>>,
-    progress: Arc<RwLock<u32>>,
     animation: Option<Animation>,
     solver_thread: Option<std::thread::JoinHandle<()>>,
     update_thread: Option<std::thread::JoinHandle<()>>,
-    solver_running: Arc<AtomicBool>,
+    cmd_sender: Option<crossbeam_channel::Sender<Command>>,
+    img_receiver: Option<crossbeam_channel::Receiver<RgbaImage>>,
+    last_update: std::time::Instant,
 }
 
 impl Default for MyApp {
@@ -86,13 +94,14 @@ impl Default for MyApp {
         let algorithm = SolverAlgorithm::Greedy;
 
         let mut app = Self {
+            maze: maze,
             algorithm: algorithm,
-            solver: algorithm.create(maze),
-            progress: Arc::new(RwLock::new(0)),
             animation: None,
             solver_thread: None,
             update_thread: None,
-            solver_running: Arc::new(AtomicBool::new(false)),
+            img_receiver: None,
+            cmd_sender: None,
+            last_update: std::time::Instant::now(),
         };
 
         app.set_alg(algorithm);
@@ -103,39 +112,57 @@ impl Default for MyApp {
 
 impl MyApp {
     fn set_alg(&mut self, algorithm: SolverAlgorithm) {
+        // stop the old thread if it's running
         if let Some(old_thread) = self.solver_thread.take() {
-            if self.solver_running.load(Ordering::Acquire) {
-                self.solver_running.store(false, Ordering::Release);
-                old_thread.join().unwrap();
-            }
+            let sender = self.cmd_sender.as_ref().unwrap();
+            sender.send(Command::Stop).unwrap();
+            old_thread.join().unwrap();
         }
-        self.solver_running.store(true, Ordering::Release);
 
-        let maze = self.solver.read().unwrap().maze().clone();
-        self.solver = algorithm.create(maze);
+        let maze = self.maze.clone();
         self.algorithm = algorithm;
 
-        let switch_guard = self.solver_running.clone();
-        let solver_guard = self.solver.clone();
-        let current_progress = self.progress.clone();
+        let (img_sender, img_receiver) = crossbeam_channel::bounded(3);
+        let (cmd_sender, cmd_receiver) = crossbeam_channel::bounded(0);
+
+        self.img_receiver = Some(img_receiver);
+        self.cmd_sender = Some(cmd_sender);
+
         self.solver_thread = Some(std::thread::spawn(move || {
-            while switch_guard.load(Ordering::Relaxed) {
-                let solver_state = {
-                    let mut solver = solver_guard.write().unwrap();
+            let mut solver = algorithm.create(maze);
 
-                    (0..a_star::SOLVER_STEPS_PER_TICK)
-                        .map(|_| solver.next())
-                        .last().unwrap()
-                };
+            let mut reached_end = false;
+            loop {
+                match cmd_receiver.try_recv() {
+                    Ok(Command::Restart) => {
+                        solver.restart();
+                    }
+                    Ok(Command::Stop) => {
+                        return;
+                    }
+                    Err(_) => {
+                        if reached_end {
+                            continue;
+                        }
 
-                if let SearchState::Progress(progress) = solver_state {
-                    *current_progress.write().unwrap() = progress.checked;
-                } else {
-                    continue;
+                        let solver_state = {
+                            (0..a_star::SOLVER_STEPS_PER_TICK)
+                                .map(|_| solver.next())
+                                .last()
+                                .unwrap()
+                        };
+
+                        let maze_img = maze_image(&*solver);
+                        img_sender.send(maze_img).unwrap();
+
+                        match solver_state {
+                            SearchState::Found | SearchState::NotFound => {
+                                reached_end = true;
+                            }
+                            _ => {}
+                        }
+                    }
                 }
-
-                let sleep_duration = 1000 / a_star::SOLVER_TICKS_PER_SECOND;
-                std::thread::sleep(std::time::Duration::from_millis(sleep_duration));
             }
         }));
     }
@@ -148,50 +175,46 @@ impl eframe::App for MyApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading(title);
 
-            if self.solver_running.load(Ordering::Relaxed) {
-                let last_alg = self.algorithm;
-                let mut selected_alg = last_alg;
+            let last_alg = self.algorithm;
+            let mut selected_alg = last_alg;
 
-                egui::ComboBox::from_label("Select one!")
-                    .selected_text(format!("{:?}", selected_alg.name()))
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
-                        ui.selectable_value(&mut selected_alg, SolverAlgorithm::Greedy, "Greedy");
-                    });
+            egui::ComboBox::from_label("Select one!")
+                .selected_text(format!("{:?}", selected_alg.name()))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut selected_alg, SolverAlgorithm::AStar, "A*");
+                    ui.selectable_value(&mut selected_alg, SolverAlgorithm::Greedy, "Greedy");
+                });
 
-                if selected_alg != last_alg {
-                    self.set_alg(selected_alg);
-                }
+            if selected_alg != last_alg {
+                self.set_alg(selected_alg);
             }
 
             if ui.button("restart").clicked() {
-                let mut solver = self.solver.write().unwrap();
-                solver.restart();
+                if let Some(sender) = self.cmd_sender.as_ref() {
+                    sender.send(Command::Restart).unwrap();
+                }
             }
 
-            if self.solver_running.load(Ordering::Relaxed) {
-                let maze_img = {
-                    let solver = self.solver.read().unwrap();
-                    maze_image(&*solver)
-                };
+            let current_time = std::time::Instant::now();
+            let update_threshold = 1.0 / a_star::SOLVER_TICKS_PER_SECOND as f32;
+            if current_time.duration_since(self.last_update).as_secs_f32() > update_threshold {
+                self.last_update = current_time;
 
-                let animation = if self.animation.is_none() {
-                    self.animation = Some(Animation::new("maze", ctx, &maze_img));
-                    self.animation.as_ref().unwrap()
-                } else {
-                    let animation = self.animation.as_mut().unwrap();
-                    animation.update(&maze_img);
-                    animation
-                };
+                let receiver = self.img_receiver.as_ref().unwrap();
+                if let Ok(maze_img) = receiver.try_recv() {
+                    if self.animation.is_none() {
+                        self.animation = Some(Animation::new("maze", ctx, &maze_img));
+                    } else {
+                        let animation = self.animation.as_mut().unwrap();
+                        animation.update(&maze_img);
+                    };
+                }
+            }
 
+            if let Some(animation) = &self.animation {
                 let egui_img =
                     egui::Image::new(animation.texture(), animation.texture().size_vec2());
-
                 ui.add(egui_img);
-
-                let checked = *self.progress.read().unwrap();
-                let total = animation.size().area();
-                ui.add(egui::ProgressBar::new(checked as f32 / total as f32));
             }
 
             if self.update_thread.is_none() {
@@ -203,8 +226,4 @@ impl eframe::App for MyApp {
             }
         });
     }
-}
-
-impl MyApp {
-    fn start_solver_thread(&mut self) {}
 }

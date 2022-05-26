@@ -85,12 +85,10 @@ impl Solver for AStarSolver {
     }
 
     fn next(&mut self) -> SearchState {
-        if self.queue.is_empty() {
-            if self.found {
-                return SearchState::Found;
-            } else {
-                return SearchState::NotFound;
-            }
+        if self.found {
+            return SearchState::Found;
+        } else if self.queue.is_empty() {
+            return SearchState::NotFound;
         }
 
         let QueueEntry {

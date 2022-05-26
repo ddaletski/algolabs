@@ -47,12 +47,10 @@ impl Solver for GreedySolver {
     }
 
     fn next(&mut self) -> SearchState {
-        if self.stack.is_empty() {
-            if self.found {
-                return SearchState::Found;
-            } else {
-                return SearchState::NotFound;
-            }
+        if self.found {
+            return SearchState::Found;
+        } else if self.stack.is_empty() {
+            return SearchState::NotFound;
         }
 
         let current = self.stack.pop().unwrap();
