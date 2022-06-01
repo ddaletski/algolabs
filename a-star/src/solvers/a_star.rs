@@ -5,6 +5,8 @@ use crate::maze::{Maze, NodeType};
 use crate::traits::solver::{CellState, Progress, SearchState};
 pub use crate::traits::Solver;
 
+use rust_config::{Config, Configurable, ConfigSpec};
+
 struct QueueEntry {
     cost: f32,
     point: Point,
@@ -42,6 +44,7 @@ impl Ord for QueueEntry {
     }
 }
 
+#[configurable]
 pub struct AStarSolver {
     maze: Maze,
     checked: HashSet<Point>,
@@ -138,6 +141,8 @@ impl AStarSolver {
             queue: BinaryHeap::new(),
             found: false,
             max_index: 0,
+            config_spec: ConfigSpec::new(vec![
+            ])
         };
 
         solver.restart();

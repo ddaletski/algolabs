@@ -1,0 +1,10 @@
+[package]
+name = "rust-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.rust-config-types]
+path = "../types"
+
+[dependencies.rust-config-macros]
+path = "../macros"

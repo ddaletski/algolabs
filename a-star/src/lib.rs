@@ -3,7 +3,9 @@ pub mod gui;
 pub mod maze;
 pub mod solvers;
 pub mod traits;
-pub mod config;
+
+#[macro_use]
+extern crate rust_config;
 
 use common::Size;
 

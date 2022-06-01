@@ -10,6 +10,7 @@ dependencies = [
  "eframe",
  "image",
  "rand",
+ "rust-config",
  "serde_json",
 ]
 
@@ -1456,6 +1457,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62f25bc4c7e55e0b0b7a1d43fb893f4fa1361d0abe38b9ce4f323c2adfe6ef42"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "rust-config"
+version = "0.1.0"
+dependencies = [
+ "rust-config-macros",
+ "rust-config-types",
+]
+
+[[package]]
+name = "rust-config-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rust-config-types",
+ "syn",
+]
+
+[[package]]
+name = "rust-config-types"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]
