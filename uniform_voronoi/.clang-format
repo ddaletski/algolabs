@@ -1,0 +1,34 @@
+---
+BasedOnStyle: Chromium
+IndentWidth: 4
+ColumnLimit: 100
+---
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AccessModifierOffset: -3
+
+BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: All
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+BraceWrapping:
+    AfterFunction: true
+    AfterControlStatement: MultiLine
+    AfterExternBlock: true
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: true
+
+CompactNamespaces: false
+FixNamespaceComments: true
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+---
