@@ -23,21 +23,51 @@ int main(int argc, char* argv[])
         }
         cv::waitKey();
     } else {
-        auto W = 4096;
-        auto H = 4096;
+        auto img = cv::imread("input.png");
+        auto radius = sqrt(1.0 * img.size().area()) / 100;
+        auto sampler = Sampler(img.size(), radius);
 
-        cv::Mat canvas = cv::Mat::zeros({W, H}, CV_8UC1);
-        auto sampler = Sampler(canvas.size(), 20);
-
-        auto count = 0;
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto sample = sampler.sample(); sample.has_value(); sample = sampler.sample()) {
-            ++count;
+        std::vector<cv::Point2f> points;
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto sample = sampler.sample(); sample.has_value(); sample = sampler.sample()) {
+                points.push_back(sample.value());
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto spent = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+            std::cout << "sampling took: " << spent << "ms." << std::endl;
+            std::cout << "points: " << points.size() << std::endl;
         }
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto spent = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-        std::cout << "took: " << spent << "ms." << std::endl;
-        std::cout << "points: " << count << std::endl;
+
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            auto subdiv = cv::Subdiv2D(cv::Rect(0, 0, img.cols, img.rows));
+            subdiv.insert(points);
+
+            std::vector<std::vector<cv::Point2f>> facets;
+            std::vector<cv::Point2f> facetCenters;
+            subdiv.getVoronoiFacetList({}, facets, facetCenters);
+
+            for (auto i = 0; i < facets.size(); ++i) {
+                auto& facet = facets[i];
+                cv::Point center = facetCenters[i];
+
+                std::vector<cv::Point> polygon;
+                polygon.reserve(facet.size());
+                for (auto& p : facet) {
+                    polygon.push_back(p);
+                }
+                auto colorRaw = img.at<cv::Vec3b>(center);
+                cv::Scalar color = colorRaw;
+                cv::fillConvexPoly(img, polygon, color);
+            }
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto spent = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+            std::cout << "render took: " << spent << "ms." << std::endl;
+
+            cv::imwrite("out.png", img);
+        }
     }
 
     return 0;
