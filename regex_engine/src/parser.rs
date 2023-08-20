@@ -19,42 +19,43 @@ impl RegexParser {
     }
 
     pub fn parse(&self, regex: &str) -> NFA {
+        let mut states = vec![];
         let mut eps_transitions: HashMap<usize, LinkedList<usize>> = HashMap::new();
 
-        let mut link = |from: usize, to: usize| {
+        let mut add_eps_transition = |from: usize, to: usize| {
             eps_transitions.entry(from).or_default().push_back(to);
         };
 
+        // stack for '(' and '|' characters
         let mut token_stack: LinkedList<TokenStackEntry> = LinkedList::new();
 
-        let mut states = vec![];
-
-        for ch in std::iter::once(b'(')
+        // add parentheses around an actual expression
+        for next_char in std::iter::once(b'(')
             .chain(regex.bytes())
             .chain(std::iter::once(b')'))
         {
-            let idx = states.len();
+            let pos = states.len();
 
-            let next_state = State::from(ch);
+            let next_state = State::from(next_char);
 
             match next_state {
                 State::Char(_) | State::Success => {}
                 State::Star => {
-                    link(idx - 1, idx);
-                    link(idx, idx - 1);
-                    link(idx, idx + 1);
+                    add_eps_transition(pos - 1, pos);
+                    add_eps_transition(pos, pos - 1);
+                    add_eps_transition(pos, pos + 1);
                 }
                 State::LParen => {
                     token_stack.push_back(TokenStackEntry {
                         token: StackToken::LParen,
-                        position: idx,
+                        position: pos,
                     });
-                    link(idx, idx + 1);
+                    add_eps_transition(pos, pos + 1);
                 }
                 State::Pipe => {
                     token_stack.push_back(TokenStackEntry {
                         token: StackToken::Pipe,
-                        position: idx,
+                        position: pos,
                     });
                 }
                 State::RParen => {
@@ -62,11 +63,11 @@ impl RegexParser {
                     loop {
                         let top_token = token_stack
                             .pop_back()
-                            .expect(&format!("unmatched right parenthesis at idx {:}", idx));
+                            .expect(&format!("unmatched right parenthesis at idx {}", pos));
 
                         match top_token.token {
                             StackToken::Pipe => {
-                                link(top_token.position, idx);
+                                add_eps_transition(top_token.position, pos);
                                 pipes_positions.push(top_token.position);
                             }
                             StackToken::LParen => {
@@ -76,17 +77,17 @@ impl RegexParser {
                                             states[pipe_pos + 1],
                                             State::LParen | State::Char(_)
                                         ),
-                                        "wrong right-side of '|' operation at {}",
+                                        "wrong right-side of '|' operation at idx {}",
                                         pipe_pos + 1
                                     );
-                                    link(top_token.position, pipe_pos + 1);
+                                    add_eps_transition(top_token.position, pipe_pos + 1);
                                 }
                                 break;
                             }
                         };
                     }
 
-                    link(idx, idx + 1);
+                    add_eps_transition(pos, pos + 1);
                 }
             }
 

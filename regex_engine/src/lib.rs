@@ -26,3 +26,40 @@ impl Regex {
         self.nfa.generate_dot(writer)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Regex;
+    use rstest::rstest;
+
+    #[rstest::fixture]
+    fn re() -> Regex {
+        Regex::compile("(a(bc*|de)fg)|(hi*j)")
+    }
+
+    #[rstest]
+    #[case("abfg")]
+    #[case("abcfg")]
+    #[case("abccccccfg")]
+    #[case("adefg")]
+    #[case("abfgabfg")]
+    #[case("abcfgabfg")]
+    #[case("abfgabccccccfg")]
+    #[case("hiij")]
+    #[case("hij")]
+    #[case("hj")]
+    fn positive_cases(re: Regex, #[case] text: &str) {
+        assert!(re.matches(text));
+    }
+
+    #[rstest]
+    #[case("")]
+    #[case("acfg")]
+    #[case("abcdefg")]
+    #[case("abefg")]
+    #[case("hhij")]
+    #[case("j")]
+    fn negative_cases(re: Regex, #[case] text: &str) {
+        assert!(!re.matches(text));
+    }
+}

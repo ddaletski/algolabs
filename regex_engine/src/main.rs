@@ -1,27 +1,15 @@
-use std::fs::File;
+use std::io::BufWriter;
 
 use regex_engine::Regex;
 
-macro_rules! check {
-    ($e:expr) => {
-        if !$e {
-            eprintln!("check failed: {}", stringify!($e));
-        }
-    };
-}
-
 fn main() {
-    let re = Regex::compile("a(bc*|de)fg");
+    let re = Regex::compile("(a(bc*|de)fg)|(hi*j)");
 
-    re.generate_dot(File::create("graph.dot").unwrap()).unwrap();
+    let mut buf_writer = BufWriter::new(vec![]);
+    re.generate_dot(&mut buf_writer).unwrap();
 
-    check!(re.matches("abfg"));
-    check!(re.matches("abcfg"));
-    check!(re.matches("abccccccfg"));
-    check!(re.matches("adefg"));
+    let bytes = buf_writer.into_inner().unwrap();
+    let dot = String::from_utf8(bytes).unwrap();
 
-    check!(!re.matches(""));
-    check!(!re.matches("abfg"));
-    check!(!re.matches("abcdefg"));
-    check!(!re.matches("abefg"));
+    println!("{}", dot);
 }
