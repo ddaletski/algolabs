@@ -18,7 +18,6 @@ impl QueueEntry {
 
         let remaining_estimate = dist_func(&self.point, &self.destination);
         let current_cost = self.cost;
-        // let recentness_discount = (0.1 * self.index_number as f32) as i32;
         -(current_cost + remaining_estimate) as i32
     }
 }

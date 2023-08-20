@@ -91,16 +91,28 @@ impl Default for MyApp {
         };
 
         let mut rng = rand::thread_rng();
-        let walls = (0..size.width * size.height / 10)
+        let mut walls: Vec<Point> = (0..size.width * size.height / 10)
             .map(|_| {
                 let x = rng.gen_range(0..size.width) as i32;
                 let y = rng.gen_range(0..size.height) as i32;
 
                 Point { x, y }
             })
-            .filter(|&p| p != source && p != destination);
+            .filter(|&p| p != source && p != destination)
+            .collect();
 
-        let points_set = SparsePointSet::new(walls);
+        for i in 1..3 {
+            let x = size.width * i / 3;
+
+            for y in ((size.height as f32 * 0.2) as u32)..size.height {
+                walls.push(Point {
+                    x: x as i32,
+                    y: y as i32,
+                });
+            }
+        }
+
+        let points_set = SparsePointSet::new(walls.into_iter());
 
         let maze = Maze::new(size, points_set, source, destination);
 
