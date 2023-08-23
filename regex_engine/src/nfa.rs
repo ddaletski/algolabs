@@ -6,6 +6,7 @@ use std::{
 
 pub(super) enum State {
     Char(u8),
+    Dot,
     LParen,
     RParen,
     Star,
@@ -19,12 +20,13 @@ impl Display for State {
             f.write_str(&format!("{}", char::from_u32(*ch as u32).unwrap()))
         } else {
             let display_str = match self {
+                State::Char(_) => unreachable!(),
+                State::Dot => ".",
                 State::LParen => "(",
                 State::RParen => ")",
                 State::Star => "*",
                 State::Pipe => "|",
                 State::Success => "end",
-                _ => unreachable!(),
             };
             f.write_str(display_str)
         }
@@ -44,6 +46,7 @@ impl From<u8> for State {
             b')' => State::RParen,
             b'*' => State::Star,
             b'|' => State::Pipe,
+            b'.' => State::Dot,
             _ => State::Char(value),
         }
     }
@@ -68,10 +71,16 @@ impl NFA {
 
             // read the next text character and do direct transitions if the character matches
             for &state_idx in &reachable_states {
-                if let State::Char(re_char) = self.states[state_idx] {
-                    if re_char == text_char {
+                match self.states[state_idx] {
+                    State::Char(re_char) => {
+                        if re_char == text_char {
+                            next_states.insert(state_idx + 1);
+                        }
+                    }
+                    State::Dot => {
                         next_states.insert(state_idx + 1);
                     }
+                    _ => {}
                 }
             }
 
@@ -105,7 +114,6 @@ impl NFA {
             }
         }
     }
-
 
     pub fn generate_dot<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
         write!(&mut writer, "digraph NFA {{\n")?;

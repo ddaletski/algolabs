@@ -39,7 +39,7 @@ impl RegexParser {
             let next_state = State::from(next_char);
 
             match next_state {
-                State::Char(_) | State::Success => {}
+                State::Char(_) | State::Dot | State::Success => {}
                 State::Star => {
                     add_eps_transition(pos - 1, pos);
                     add_eps_transition(pos, pos - 1);

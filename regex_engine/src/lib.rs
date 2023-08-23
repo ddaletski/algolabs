@@ -34,7 +34,7 @@ mod test {
 
     #[rstest::fixture]
     fn re() -> Regex {
-        Regex::compile("(a(bc*|de)fg)|(hi*j)")
+        Regex::compile("a(bc*|de)fg|h.i*j.*")
     }
 
     #[rstest]
@@ -45,9 +45,10 @@ mod test {
     #[case("abfgabfg")]
     #[case("abcfgabfg")]
     #[case("abfgabccccccfg")]
-    #[case("hiij")]
-    #[case("hij")]
-    #[case("hj")]
+    #[case("hzj")]
+    #[case("hzij")]
+    #[case("h0iij")]
+    #[case("hzjalskdhaklfh")]
     fn positive_cases(re: Regex, #[case] text: &str) {
         assert!(re.matches(text));
     }
@@ -57,7 +58,7 @@ mod test {
     #[case("acfg")]
     #[case("abcdefg")]
     #[case("abefg")]
-    #[case("hhij")]
+    #[case("hhhij")]
     #[case("j")]
     fn negative_cases(re: Regex, #[case] text: &str) {
         assert!(!re.matches(text));
