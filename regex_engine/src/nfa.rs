@@ -66,7 +66,7 @@ impl NFA {
         // find all reachable states from the start state
         self.visit_connected_states(&mut reachable_states);
 
-        for text_char in text.bytes() {
+        for (char_idx, text_char) in text.bytes().enumerate() {
             let mut next_states: HashSet<usize> = HashSet::new();
 
             // read the next text character and do direct transitions if the character matches
@@ -89,7 +89,7 @@ impl NFA {
 
             reachable_states = next_states;
 
-            if reachable_states.contains(&(self.states.len() - 1)) {
+            if reachable_states.contains(&(self.states.len() - 1)) && char_idx == text.len() - 1 {
                 return true;
             }
         }

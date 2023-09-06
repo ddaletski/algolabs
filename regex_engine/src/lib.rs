@@ -42,9 +42,8 @@ mod test {
     #[case("abcfg")]
     #[case("abccccccfg")]
     #[case("adefg")]
-    #[case("abfgabfg")]
-    #[case("abcfgabfg")]
-    #[case("abfgabccccccfg")]
+    #[case("h0ij00000")]
+    #[case("h0jbfg")]
     #[case("hzj")]
     #[case("hzij")]
     #[case("h0iij")]
@@ -62,5 +61,12 @@ mod test {
     #[case("j")]
     fn negative_cases(re: Regex, #[case] text: &str) {
         assert!(!re.matches(text));
+    }
+
+    #[rstest]
+    fn string_fully_fed() {
+        let re = Regex::compile("a");
+        let string = "aaaa";
+        assert!(!re.matches(string));
     }
 }
