@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-/// Burrows-Wheeler transform
+use crate::DataTransformer;
+
+/// [Burrows-Wheeler transform](https://en.wikipedia.org/wiki/Burrows%E2%80%93Wheeler_transform)
 pub struct BWT {}
 
-impl BWT {
-    pub fn transform(data: &[u8]) -> Vec<u8> {
+impl DataTransformer for BWT {
+    fn transform(&self, data: &[u8]) -> Vec<u8> {
         if data.is_empty() {
             return vec![];
         }
@@ -29,14 +31,14 @@ impl BWT {
         last_column
     }
 
-    pub fn inverse_transform(encoded: &[u8]) -> Vec<u8> {
+    fn inverse_transform(&self, encoded: &[u8]) -> Vec<u8> {
         if encoded.is_empty() {
             return vec![];
         }
 
         let data: Vec<u8> = encoded.iter().take(encoded.len() - 4).cloned().collect();
         let mut data_sorted = data.clone();
-        Self::count_sort(&mut data_sorted);
+        BWT::count_sort(&mut data_sorted);
 
         let idx_slice = &encoded[data.len()..];
         let original_index =
@@ -66,9 +68,9 @@ impl BWT {
             following_permutations[idx] = position_in_data;
         }
 
-        let mut result = vec![];
+        let mut result = Vec::with_capacity(data.len());
         let mut idx = original_index;
-        while result.len() < data.len() {
+        for _ in 0..data.len() {
             let byte = data_sorted[idx];
             result.push(byte);
             idx = following_permutations[idx] as usize;
@@ -76,7 +78,9 @@ impl BWT {
 
         result
     }
+}
 
+impl BWT {
     fn count_sort(data: &mut [u8]) {
         let mut counts = vec![0; 256];
         for &byte in data.iter() {
@@ -93,17 +97,23 @@ impl BWT {
     }
 }
 
+impl Default for BWT {
+    fn default() -> Self {
+        BWT {}
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use proptest::test_runner::Config;
-
     use super::BWT;
+    use crate::DataTransformer;
+    use proptest::test_runner::Config;
 
     #[test]
     fn transform_works() {
         let data = b"ABRACADABRA!";
 
-        let transformed = BWT::transform(data);
+        let transformed = BWT::default().transform(data);
 
         assert_eq!(transformed, b"ARD!RCAAAABB\x03\0\0\0")
     }
@@ -112,7 +122,7 @@ mod test {
     fn inverse_transform_works() {
         let transformed = b"ARD!RCAAAABB\x03\0\0\0";
 
-        let original = BWT::inverse_transform(transformed);
+        let original = BWT::default().inverse_transform(transformed);
 
         unsafe {
             assert_eq!(String::from_utf8_unchecked(original), "ABRACADABRA!");
@@ -121,12 +131,12 @@ mod test {
 
     #[test]
     fn transform_empty_returns_empty() {
-        assert_eq!(BWT::transform(&[]), vec![]);
+        assert_eq!(BWT::default().transform(&[]), vec![]);
     }
 
     #[test]
     fn inverse_transform_empty_returns_empty() {
-        assert_eq!(BWT::inverse_transform(&[]), vec![]);
+        assert_eq!(BWT::default().inverse_transform(&[]), vec![]);
     }
 
     proptest::proptest! {
@@ -134,8 +144,8 @@ mod test {
         #[test]
         fn transform_is_lossless(s in ".{0,1000}") {
             let orig_data: Vec<u8> = s.bytes().collect();
-            let encoded = BWT::transform(&orig_data);
-            let decoded = BWT::inverse_transform(&encoded);
+            let encoded = BWT::default().transform(&orig_data);
+            let decoded = BWT::default().inverse_transform(&encoded);
 
             assert_eq!(decoded, orig_data);
         }
