@@ -9,7 +9,6 @@ struct QueueEntry {
     cost: f32,
     point: Point,
     destination: Point,
-    index_number: u32,
 }
 
 impl QueueEntry {
@@ -86,7 +85,8 @@ impl Solver for AStarSolver {
     fn next(&mut self) -> SearchState {
         if self.found {
             return SearchState::Found;
-        } else if self.queue.is_empty() {
+        }
+        if self.queue.is_empty() {
             return SearchState::NotFound;
         }
 
@@ -94,14 +94,14 @@ impl Solver for AStarSolver {
             cost,
             point,
             destination: _,
-            index_number: _,
         } = self.queue.pop().unwrap();
 
         if point == self.maze().destination {
             self.found = true;
             self.queue.clear();
             return SearchState::Found;
-        } else if !self.checked.contains(&point) {
+        }
+        if !self.checked.contains(&point) {
             self.checked.insert(point);
 
             self.add_candidate(point.shift(1, 0), cost + 1.0);
@@ -165,7 +165,6 @@ impl AStarSolver {
             cost: current_cost,
             point,
             destination: self.maze().destination,
-            index_number: self.max_index,
         });
         self.max_index += 1;
     }

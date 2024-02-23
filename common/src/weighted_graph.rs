@@ -1,6 +1,6 @@
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-use crate::common::disjoint_sets_union::{HashMapDSU, UnionFind};
+use crate::disjoint_sets_union::{HashMapDSU, UnionFind};
 
 type VertexID = usize;
 
@@ -199,7 +199,6 @@ impl<T, Weight: Copy> WeightedGraph<T, Weight> {
             .adjacent_edges(first_vertex.id)
             .map(|it| std::cmp::Reverse(it))
             .collect();
-
 
         while !edges.is_empty() {
             let edge = edges.pop().unwrap().0;

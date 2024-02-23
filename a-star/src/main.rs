@@ -11,8 +11,6 @@ use a_star::traits::solver::SearchState;
 use eframe::egui;
 use image::RgbaImage;
 use rand::Rng;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
 fn main() {
     let options = eframe::NativeOptions::default();
@@ -119,8 +117,8 @@ impl Default for MyApp {
         let algorithm = SolverAlgorithm::Greedy;
 
         let mut app = Self {
-            maze: maze,
-            algorithm: algorithm,
+            maze,
+            algorithm,
             animation: None,
             solver_thread: None,
             update_thread: None,

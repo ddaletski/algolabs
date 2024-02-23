@@ -1,4 +1,3 @@
-use crate::common::Point;
 use crate::maze::Maze;
 
 #[derive(Debug)]
@@ -48,3 +47,4 @@ pub trait Solver {
 
     fn maze(&self) -> &Maze;
 }
+

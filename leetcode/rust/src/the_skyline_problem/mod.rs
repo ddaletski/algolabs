@@ -77,7 +77,8 @@ impl Solution {
 
                 if last_height == current_max_height {
                     continue;
-                } else if last_x == x && last_height != current_max_height {
+                }
+                if last_x == x && last_height != current_max_height {
                     result.pop();
                 }
             }

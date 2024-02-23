@@ -70,9 +70,8 @@ where
         if let Some(next_char) = word.next() {
             if let Some(next_node) = &self.children.get(&next_char) {
                 return next_node.find_impl(word);
-            } else {
-                return None;
             }
+            return None;
         }
         Some(self)
     }
@@ -279,7 +278,7 @@ mod test {
             random_words
         };
         static ref WORDS_100: Vec<String> = {
-            let words_file_content = include_str!("testdata/words100.txt");
+            let words_file_content = include_str!("../testdata/words100.txt");
 
             words_file_content
                 .trim()

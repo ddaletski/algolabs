@@ -3,7 +3,6 @@ use eframe::egui;
 use image;
 
 pub struct Animation {
-    name: String,
     texture: egui::TextureHandle,
 }
 
@@ -16,10 +15,7 @@ impl Animation {
 
         let texture = ctx.load_texture(name, img);
 
-        Self {
-            name: name.to_owned(),
-            texture,
-        }
+        Self { texture }
     }
 
     pub fn update(&mut self, rgba_img: &image::RgbaImage) {

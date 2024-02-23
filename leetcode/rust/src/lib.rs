@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub use common_algos::{assert_eq, assert_returns, vec2d};
 pub mod common;
 mod count_number_of_homogenous_substrings;
 mod count_primes;

@@ -38,9 +38,8 @@ impl HashMapDSU {
         while let Some(&next_item) = self.mapping.get(&curr_item) {
             if next_item == curr_item {
                 return Some(curr_item);
-            } else {
-                curr_item = next_item;
             }
+            curr_item = next_item;
         }
         None
     }
@@ -55,10 +54,9 @@ impl HashMapDSU {
                 if next_item == curr_item {
                     chain.push(curr_item);
                     return chain;
-                } else {
-                    chain.push(curr_item);
-                    curr_item = next_item;
                 }
+                chain.push(curr_item);
+                curr_item = next_item;
             }
 
             chain
