@@ -4,7 +4,6 @@ use std::ops::Index;
 struct Node<K, V, const DIM: usize> {
     key: K,
     value: V,
-    level: usize,
     prev: Option<Box<Node<K, V, DIM>>>,
     next: Option<Box<Node<K, V, DIM>>>,
 }
@@ -14,11 +13,10 @@ where
     K: Index<usize>,
     K::Output: Ord,
 {
-    fn new(key: K, value: V, level: usize) -> Node<K, V, DIM> {
+    fn new(key: K, value: V) -> Node<K, V, DIM> {
         Node {
             key,
             value,
-            level,
             prev: None,
             next: None,
         }
@@ -30,14 +28,14 @@ where
                 if let Some(node) = &mut self.prev {
                     node.insert(key, value, level.wrapping_add(1) % DIM);
                 } else {
-                    self.prev = Some(Box::new(Node::new(key, value, level)));
+                    self.prev = Some(Box::new(Node::new(key, value)));
                 }
             }
             std::cmp::Ordering::Greater => {
                 if let Some(node) = &mut self.next {
                     node.insert(key, value, level.wrapping_add(1) % DIM);
                 } else {
-                    self.next = Some(Box::new(Node::new(key, value, level)));
+                    self.next = Some(Box::new(Node::new(key, value)));
                 }
             }
             _ => {
@@ -93,7 +91,7 @@ where
         if let Some(node) = &mut self.root {
             node.insert(key, value, 0);
         } else {
-            self.root = Some(Node::new(key, value, 0));
+            self.root = Some(Node::new(key, value));
         }
     }
 }
@@ -102,8 +100,8 @@ where
 mod tests {
     use itertools::Itertools;
     use rand::seq::SliceRandom;
+    use super::KDTree;
 
-    use crate::*;
     const N_NODES: usize = 10000;
 
     type Point2i = [i32; 2];
@@ -160,12 +158,12 @@ mod tests {
 
         let mut tree = Tree::new();
 
-        for p in points.iter().take(N_NODES/2) {
+        for p in points.iter().take(N_NODES / 2) {
             let sum = p[0] + p[1];
             tree.insert(*p, sum);
         }
 
-        for p in points.iter().skip(N_NODES/2) {
+        for p in points.iter().skip(N_NODES / 2) {
             let val = tree.get(p);
             assert!(val.is_none());
         }

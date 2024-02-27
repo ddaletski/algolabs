@@ -1,4 +1,6 @@
-pub mod disjoint_sets_union;
+pub mod counting_sort;
+pub mod union_find;
+pub mod kdtree;
 pub mod trie;
 pub mod weighted_graph;
 

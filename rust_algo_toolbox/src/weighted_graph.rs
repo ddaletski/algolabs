@@ -1,6 +1,6 @@
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-use crate::disjoint_sets_union::{HashMapDSU, UnionFind};
+use crate::union_find::{SparseUF, UnionFind};
 
 type VertexID = usize;
 
@@ -29,6 +29,18 @@ impl<Weight> Edge<Weight> {
     }
 }
 
+impl<Weight> Edge<Weight> {
+    /// return an edge with sorted ends (so that `edge.from` <= `edge.to`)
+    pub fn sorted(self) -> Self {
+        Self {
+            from: self.from.min(self.to),
+            to: self.from.max(self.to),
+            ..self
+        }
+    }
+}
+
+/// Unordered weighted graph
 pub struct WeightedGraph<T, Weight = i32> {
     vertices: HashMap<VertexID, T>,
     adjacencies: HashMap<VertexID, HashMap<VertexID, Weight>>,
@@ -163,7 +175,7 @@ impl<T, Weight: Copy> WeightedGraph<T, Weight> {
         Weight: Ord,
     {
         let mut result = vec![];
-        let mut dsu = HashMapDSU::new();
+        let mut dsu = SparseUF::new();
 
         let edges: BinaryHeap<_> = self.edges().map(|it| std::cmp::Reverse(it)).collect();
 
@@ -177,7 +189,7 @@ impl<T, Weight: Copy> WeightedGraph<T, Weight> {
             }
 
             dsu.join(edge.from, edge.to);
-            result.push(edge);
+            result.push(edge.sorted());
         }
 
         result
@@ -211,7 +223,7 @@ impl<T, Weight: Copy> WeightedGraph<T, Weight> {
             }
 
             visited_vertices.insert(edge.to);
-            result.push(edge);
+            result.push(edge.sorted());
         }
 
         result

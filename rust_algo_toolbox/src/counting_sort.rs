@@ -11,7 +11,7 @@ use std::{iter::zip, mem::MaybeUninit};
 ///
 /// # Example
 /// ```
-/// # use counting_sort::sort;
+/// # use algo_toolbox::counting_sort::sort;
 /// #
 /// let arr = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3];
 /// let sorted = sort(&arr, |x| *x);
@@ -42,7 +42,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use counting_sort::sort_to_slice;
+/// # use algo_toolbox::counting_sort::sort_to_slice;
 /// #
 /// let arr = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3];
 /// let mut sorted = vec![0; arr.len()];
@@ -85,7 +85,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use counting_sort::sort_to_uninit_slice;
+/// # use algo_toolbox::counting_sort::sort_to_uninit_slice;
 /// # use std::mem::MaybeUninit;
 /// #
 /// let arr = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3];

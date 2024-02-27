@@ -1,11 +1,15 @@
 [package]
-name = "common_algos"
+name = "algo_toolbox"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bench]]
+harness = false
+name = "speedtest"
 
 [dependencies]
+derivative = "2.2.0"
+itertools = "0.12.1"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
@@ -13,3 +17,4 @@ proptest = "1.4.0"
 rand = "0.8.5"
 rstest = "0.18.2"
 spectral = "0.6.0"
+criterion = "0.5.1"
