@@ -1,7 +1,8 @@
 pub mod counting_sort;
-pub mod union_find;
 pub mod kdtree;
+pub mod radix_sort;
 pub mod trie;
+pub mod union_find;
 pub mod weighted_graph;
 
 #[macro_export]
