@@ -30,6 +30,13 @@ pub fn sort_vecs(vecs: &mut [Vec<u8>]) {
     );
 }
 
+/// Sort the given byte slices in lexicographical order using the LSD radix sort algorithm.
+pub fn sort_slices(slices: &mut [&[u8]]) {
+    let permutation = sorted_permutation(&slices);
+
+    slices.clone_from_slice(&permutation.into_iter().map(|i| slices[i]).collect_vec());
+}
+
 /// Compute a permutation of input data to sort it in lexicographical order.
 pub fn sorted_permutation(data: &[&[u8]]) -> Vec<usize> {
     if data.is_empty() {
@@ -60,7 +67,7 @@ pub fn sorted_permutation(data: &[&[u8]]) -> Vec<usize> {
             });
 
         unsafe {
-            sort_by_keys(
+            sort_by_u16_keys(
                 &mut permutations.0,
                 &keys,
                 &mut key_dst_pos,
@@ -90,7 +97,7 @@ fn key_at(data: &[u8], idx: usize) -> u16 {
 ///
 /// Keys should be in range `[0, 256]`.
 /// `keys_dst_pos.len()` should be >= 258
-unsafe fn sort_by_keys<'a, T>(src: &[T], keys: &[u16], key_dst_pos: &mut [usize], dst: &mut [T])
+unsafe fn sort_by_u16_keys<'a, T>(src: &[T], keys: &[u16], key_dst_pos: &mut [usize], dst: &mut [T])
 where
     T: Clone,
 {

@@ -10,6 +10,7 @@ name = "speedtest"
 [dependencies]
 derivative = "2.2.0"
 itertools = "0.12.1"
+tap = "1.0.1"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
