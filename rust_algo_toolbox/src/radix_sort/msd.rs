@@ -82,8 +82,8 @@ pub fn sorted_permutation(data: &[&[u8]]) -> Vec<usize> {
             )
         };
 
+        // determine subranges with the same current character 
         let subrange_separators = key_dst_pos.iter().cloned().unique().collect_vec();
-
         let subranges = subrange_separators
             .windows(2)
             .map(|window| (range.start + window[0])..(range.start + window[1]))
