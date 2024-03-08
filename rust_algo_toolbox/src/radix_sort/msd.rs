@@ -137,21 +137,6 @@ mod tests {
     use super::*;
 
     use proptest::{arbitrary::any, prelude::prop::collection::vec as pvec};
-    use tap::Tap;
-
-    #[test]
-    fn manual() {
-        let mut input = ["asdbab", "asdb", "abcd"]
-            .into_iter()
-            .map(|slice| slice.to_string())
-            .collect_vec();
-
-        let expected = input.clone().tap_mut(|v| v.sort());
-
-        sort_strings(&mut input);
-
-        assert_eq!(input, expected);
-    }
 
     proptest::proptest! {
         #[test]

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use algo_toolbox::radix_sort::{lsd, msd};
+use algo_toolbox::radix_sort::{lsd, msd, radix_qsort};
 use criterion::{criterion_group, Criterion, Throughput};
 use itertools::Itertools;
 use rand::seq::{IteratorRandom, SliceRandom};
@@ -18,38 +18,66 @@ fn generate_random_array(n_arrays: usize, max_len: usize) -> Vec<Vec<u8>> {
         .collect_vec()
 }
 
+const PARTS: [&'static str; 6] = ["abcd", "lol", "kek", "chebureck", "hahaha", "00000000"];
+fn generate_non_random_array(n_arrays: usize, n_words: usize) -> Vec<Vec<u8>> {
+    let mut rng = rand::thread_rng();
+
+    (0..n_arrays)
+        .map(|_| {
+            PARTS
+                .choose_multiple(&mut rng, n_words)
+                .map(|&s| s.bytes())
+                .flatten()
+                .collect_vec()
+        })
+        .collect_vec()
+}
+
 fn radix_bench_random(c: &mut Criterion) {
-    for n_arrays in [1000, 100000] {
-        for max_len in [4, 50] {
-            let mut group = c.benchmark_group(format!("radix sort random ({n_arrays}x{max_len})"));
-            group
-                .throughput(Throughput::Elements(n_arrays as u64))
-                .sampling_mode(criterion::SamplingMode::Flat)
-                .sample_size(10)
-                .measurement_time(Duration::from_secs(5))
-                .warm_up_time(Duration::from_secs(1));
+    let sets: Vec<(&'static str, Box<dyn Fn() -> Vec<Vec<u8>>>)> = vec![
+        (
+            "many short random arrays",
+            Box::new(|| generate_random_array(1000000, 4)),
+        ),
+        (
+            "few long random arrays",
+            Box::new(|| generate_random_array(100, 100000)),
+        ),
+        (
+            "many non-random arrays",
+            Box::new(|| generate_non_random_array(100000, 100)),
+        ),
+    ];
 
-            group.bench_with_input("msd", &(n_arrays, max_len), |b, &(n_arrays, max_len)| {
-                let mut rand_data = generate_random_array(n_arrays, max_len);
-                b.iter(|| msd::sort_vecs(&mut rand_data));
-            });
+    for (label, generator) in sets {
+        let mut group = c.benchmark_group(format!("radix sort of {label}"));
+        group
+            .sampling_mode(criterion::SamplingMode::Flat)
+            .sample_size(10)
+            .measurement_time(Duration::from_secs(5))
+            .warm_up_time(Duration::from_secs(1));
 
-            group.bench_with_input("lsd", &(n_arrays, max_len), |b, &(n_arrays, max_len)| {
-                let mut rand_data = generate_random_array(n_arrays, max_len);
-                b.iter(|| lsd::sort_vecs(&mut rand_data));
-            });
+        group.bench_function("msd", |b| {
+            let mut rand_data = generator();
+            b.iter(|| msd::sort_vecs(&mut rand_data));
+        });
 
-            group.bench_with_input(
-                "std::sort",
-                &(n_arrays, max_len),
-                |b, &(n_arrays, max_len)| {
-                    let mut rand_data = generate_random_array(n_arrays, max_len);
-                    b.iter(|| rand_data.sort());
-                },
-            );
+        group.bench_function("lsd", |b| {
+            let mut rand_data = generator();
+            b.iter(|| lsd::sort_vecs(&mut rand_data));
+        });
 
-            group.finish();
-        }
+        group.bench_function("3w-rqsort", |b| {
+            let mut rand_data = generator();
+            b.iter(|| radix_qsort::sort_vecs(&mut rand_data));
+        });
+
+        group.bench_function("std::sort", |b| {
+            let mut rand_data = generator();
+            b.iter(|| rand_data.sort_unstable());
+        });
+
+        group.finish();
     }
 }
 
@@ -81,11 +109,18 @@ fn radix_bench_wordlist(c: &mut Criterion) {
         b.iter(|| lsd::sort_strings(&mut words));
     });
 
+    group.bench_function("3w-qsort", |b| {
+        let mut words = words_list.clone();
+        let mut rng = rand::thread_rng();
+        words.shuffle(&mut rng);
+        b.iter(|| radix_qsort::sort_strings(&mut words));
+    });
+
     group.bench_function("std::sort", |b| {
         let mut words = words_list.clone();
         let mut rng = rand::thread_rng();
         words.shuffle(&mut rng);
-        b.iter(|| words.sort());
+        b.iter(|| words.sort_unstable());
     });
 
     group.finish();
