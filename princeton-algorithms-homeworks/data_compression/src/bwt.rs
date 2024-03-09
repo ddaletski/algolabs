@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::DataTransformer;
+use crate::{circular_suffix_array::CircularSuffixArray, DataTransformer};
 
 /// [Burrows-Wheeler transform](https://en.wikipedia.org/wiki/Burrows%E2%80%93Wheeler_transform)
 pub struct BWT {}
@@ -11,20 +11,14 @@ impl DataTransformer for BWT {
             return vec![];
         }
 
-        // TODO: optimize with circular suffix array
-        let mut permutations: Vec<_> = (0..data.len())
-            .map(|shift| {
-                let mut rotated = data.to_vec();
-                rotated.rotate_left(shift);
+        let suffix_array = CircularSuffixArray::new(data);
 
-                rotated
-            })
+        let original_index = suffix_array.pos_of_suffix(0).unwrap() as u32;
+
+        let mut last_column: Vec<u8> = suffix_array
+            .suffixes()
+            .map(|suffix| suffix.last())
             .collect();
-        permutations.sort_unstable();
-
-        let original_index = permutations.iter().position(|v| v == data).unwrap() as u32;
-
-        let mut last_column: Vec<u8> = permutations.iter().map(|v| *v.last().unwrap()).collect();
 
         last_column.extend_from_slice(&original_index.to_le_bytes());
 
