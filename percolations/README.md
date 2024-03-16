@@ -6,5 +6,6 @@ implemented in Rust
 
 [Task specification](https://coursera.cs.princeton.edu/algs4/assignments/percolation/specification.php)
 
-My own Disjoint-set-union [implementation](../../disjoint-sets) is used to perform fast test whether two grid cells are in the same
-4-connected component
+My own Disjoint-set-union [implementation](../rust_algo_toolbox/src/union_find) is used to perform fast test
+whether two grid cells are in the same 4-connected component.
+
