@@ -1,4 +1,4 @@
-use crate::common::trie::{CharTrie, TrieNode};
+use algo_toolbox::trie::{CharTrie, TrieNode};
 
 #[derive(Debug)]
 struct MagicDictionary {

@@ -59,7 +59,7 @@ impl Solution2 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{vec2d, common::parse_2d_array};
+    use crate::{vec2d, parse_2d_array};
     use super::*;
 
     #[test]

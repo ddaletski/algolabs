@@ -1,4 +1,4 @@
-use crate::common::weighted_graph::WeightedGraph;
+use algo_toolbox::weighted_graph::WeightedGraph;
 
 struct Solution;
 

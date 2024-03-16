@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::common::disjoint_sets_union::{HashMapDSU, UnionFind};
+use algo_toolbox::union_find::{SparseUF, UnionFind};
 
 pub struct Solution {}
 
@@ -26,7 +26,7 @@ impl Solution {
     pub fn largest_component_size(nums: Vec<i32>) -> i32 {
         let nums_set: HashSet<usize> = nums.iter().map(|&n| n as usize).collect();
 
-        let mut set = HashMapDSU::new();
+        let mut set = SparseUF::new();
 
         for num in nums.into_iter().map(|i| i as usize) {
             set.insert(num);
@@ -35,13 +35,14 @@ impl Solution {
             }
         }
 
-        set.components()
-            .values()
-            .map(|component| {
+        set.clusters()
+            .into_iter()
+            .map(|cluster| {
                 // filter out factors leaving only numbers from initial list
-                component
+                cluster
+                    .nodes
                     .into_iter()
-                    .filter_map(|number| nums_set.get(number))
+                    .filter_map(|number| nums_set.get(&number))
                     .count()
             })
             .max()

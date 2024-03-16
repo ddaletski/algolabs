@@ -1,6 +1,6 @@
 use std::collections::LinkedList;
 
-use crate::common::trie::{CharTrie, TrieNode};
+use algo_toolbox::trie::{CharTrie, TrieNode};
 
 /////////////////////////////////////////////////////////////
 

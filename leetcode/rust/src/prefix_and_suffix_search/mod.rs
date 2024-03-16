@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::common::trie::CharTrie;
+use algo_toolbox::trie::CharTrie;
 
 #[allow(unused)]
 struct WordFilter1 {

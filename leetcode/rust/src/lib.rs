@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
-pub use common_algos::{assert_eq, assert_returns, vec2d};
-pub mod common;
+pub use algo_toolbox::{assert_returns, vec2d, parse_2d_array};
+
+mod common;
+mod contiguous_array;
 mod count_number_of_homogenous_substrings;
 mod count_primes;
 mod custom_sort_string;
@@ -28,15 +30,15 @@ mod min_cost_to_connect_all_points;
 mod partition_list;
 mod prefix_and_suffix_search;
 mod reduce_array_size_to_the_half;
+mod repeated_dna_sequences;
 mod rotate_image;
 mod search_a_2d_matrix;
 mod serialize_and_deserialize_binary_tree;
 mod single_threaded_cpu;
 mod snapshot_array;
 mod stream_of_characters;
+mod the_skyline_problem;
 mod three_sum;
 mod three_sum_closest;
 mod word_break;
 mod word_search;
-mod repeated_dna_sequences;
-mod the_skyline_problem;

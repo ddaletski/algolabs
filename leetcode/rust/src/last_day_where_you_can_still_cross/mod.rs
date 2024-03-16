@@ -1,4 +1,4 @@
-use crate::common::disjoint_sets_union::{HashMapDSU, UnionFind};
+use algo_toolbox::union_find::{SparseUF, UnionFind};
 
 struct Solution;
 
@@ -27,7 +27,7 @@ impl Solution {
         // dummy cell to which every water cell on the right side is connected
         let right_id = (rows * cols + 2) as usize;
 
-        let mut uf = HashMapDSU::new();
+        let mut uf = SparseUF::new();
 
         for (day, (row, col)) in cells.into_iter().map(|v| (v[0] - 1, v[1] - 1)).enumerate() {
             let id = (row * cols + col) as usize;

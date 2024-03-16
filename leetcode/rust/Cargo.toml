@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-common_algos.path = "../../common"
+algo_toolbox.path = "../../rust_algo_toolbox"
 
 [dev-dependencies]
 rstest = "0.18"
