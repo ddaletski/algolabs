@@ -59,7 +59,8 @@ mod test {
     fn case1() {
         let s = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT".to_string();
         let expected = vec!["AAAAACCCCC", "CCCCCAAAAA"];
-        let result = Solution::find_repeated_dna_sequences(s);
+        let mut result = Solution::find_repeated_dna_sequences(s);
+        result.sort();
         assert_eq!(expected, result);
     }
 

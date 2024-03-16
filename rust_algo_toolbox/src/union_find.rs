@@ -7,7 +7,7 @@ use derivative::Derivative;
 pub use sparse_uf::SparseUF;
 
 #[derive(Derivative)]
-#[derivative(Default)]
+#[derivative(Default, Debug)]
 pub struct Cluster {
     pub id: usize,
     #[derivative(Default(value = "HashSet::new()"))]

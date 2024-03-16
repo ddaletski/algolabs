@@ -173,7 +173,6 @@ impl UnionFind for DenseUF {
 mod tests {
     use itertools::Itertools;
     use rand::seq::SliceRandom;
-    use rand::Rng;
     use rstest::*;
     use std::collections::HashSet;
 
@@ -182,22 +181,7 @@ mod tests {
     use super::DenseUF;
 
     const N_NODES: usize = 1024;
-    const N_EDGES: usize = N_NODES * 2;
     const N_CLUSTERS: usize = 4;
-
-    #[fixture]
-    fn random_dsu() -> DenseUF {
-        let mut rng = rand::thread_rng();
-        let mut dsu = DenseUF::new(N_NODES);
-        for _ in 0..N_EDGES {
-            let id1 = rng.gen_range(0..N_NODES);
-            let id2 = rng.gen_range(0..N_NODES);
-
-            dsu.join(id1, id2);
-        }
-
-        dsu
-    }
 
     #[fixture]
     fn clusters() -> Vec<HashSet<usize>> {
@@ -225,25 +209,25 @@ mod tests {
 
     #[rstest]
     fn insert_new_increments_size() {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
         for i in 0..N_NODES {
-            assert_eq!(dsu.len(), i);
-            dsu.insert(i);
-            assert_eq!(dsu.len(), i + 1);
+            assert_eq!(uf.len(), i);
+            uf.insert(i);
+            assert_eq!(uf.len(), i + 1);
         }
     }
 
     #[rstest]
     fn insert_existing_doesnt_change_size() {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
         for i in 0..N_NODES {
-            dsu.insert(i);
+            uf.insert(i);
         }
 
         for i in 0..N_NODES {
-            let size_before = dsu.len();
-            dsu.insert(i);
-            assert_eq!(dsu.len(), size_before);
+            let size_before = uf.len();
+            uf.insert(i);
+            assert_eq!(uf.len(), size_before);
         }
     }
 
@@ -266,28 +250,28 @@ mod tests {
 
     #[rstest]
     fn join_makes_cluster_id_equal(clusters: Vec<HashSet<usize>>) {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
         let first_id = *clusters[0].iter().take(1).next().unwrap();
 
         for id in clusters.get(0).unwrap() {
-            dsu.join(*id, first_id);
+            uf.join(*id, first_id);
         }
 
-        let first_cluster_id = dsu.cluster_id_of(first_id).unwrap();
+        let first_cluster_id = uf.cluster_id_of(first_id).unwrap();
         for id in clusters.get(0).unwrap() {
-            assert_eq!(dsu.cluster_id_of(*id).unwrap(), first_cluster_id);
+            assert_eq!(uf.cluster_id_of(*id).unwrap(), first_cluster_id);
         }
     }
 
     #[rstest]
     fn different_clusters_have_different_ids(clusters: Vec<HashSet<usize>>) {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
 
         for cluster in clusters.iter() {
             let first_id = *cluster.iter().take(1).next().unwrap();
 
             for id in cluster.iter() {
-                dsu.join(*id, first_id);
+                uf.join(*id, first_id);
             }
         }
 
@@ -300,80 +284,79 @@ mod tests {
         {
             for id1 in c1.iter().take(10) {
                 for id2 in c2.iter().take(10) {
-                    let cluster_id1 = dsu.cluster_id_of(*id1);
-                    let cluster_id2 = dsu.cluster_id_of(*id2);
+                    let cluster_id1 = uf.cluster_id_of(*id1);
+                    let cluster_id2 = uf.cluster_id_of(*id2);
                     assert_ne!(cluster_id1, cluster_id2);
                 }
             }
         }
     }
 
-
     #[rstest]
-    fn empty_dsu_has_no_clusters() {
-        let mut dsu = DenseUF::new(N_NODES);
+    fn empty_uf_has_no_clusters() {
+        let mut uf = DenseUF::new(N_NODES);
 
-        assert_eq!(dsu.clusters().len(), 0);
+        assert_eq!(uf.clusters().len(), 0);
     }
 
     #[rstest]
     fn clusters_count_is_valid(clusters: Vec<HashSet<usize>>) {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
 
         for (i, cluster) in clusters.iter().enumerate() {
             let first_id = *cluster.iter().take(1).next().unwrap();
 
             for id in cluster.iter() {
-                dsu.join(*id, first_id);
+                uf.join(*id, first_id);
             }
-            assert_eq!(dsu.clusters().len(), i + 1);
+            assert_eq!(uf.clusters().len(), i + 1);
         }
     }
 
     #[rstest]
     fn non_entries_arent_connected() {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
 
         for (i, j) in (0..N_NODES).cartesian_product(0..N_NODES) {
-            assert!(!dsu.connected(i, j));
-            assert!(!dsu.connected(j, i));
+            assert!(!uf.connected(i, j));
+            assert!(!uf.connected(j, i));
         }
     }
 
     #[rstest]
     fn connected_works_for_disconnected_nodes(clusters: Vec<HashSet<usize>>) {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
 
-        let in_dsu = clusters.get(0).unwrap();
-        let not_in_dsu = clusters.get(1).unwrap();
+        let in_uf = clusters.get(0).unwrap();
+        let not_in_uf = clusters.get(1).unwrap();
 
-        let first_id = *in_dsu.iter().take(1).next().unwrap();
-        for id in in_dsu {
-            dsu.join(*id, first_id);
+        let first_id = *in_uf.iter().take(1).next().unwrap();
+        for id in in_uf {
+            uf.join(*id, first_id);
         }
 
-        for id1 in in_dsu {
-            for id2 in not_in_dsu {
-                assert!(!dsu.connected(*id1, *id2));
-                assert!(!dsu.connected(*id2, *id1));
+        for id1 in in_uf {
+            for id2 in not_in_uf {
+                assert!(!uf.connected(*id1, *id2));
+                assert!(!uf.connected(*id2, *id1));
             }
         }
     }
 
     #[rstest]
     fn connected_works_for_connected_nodes(clusters: Vec<HashSet<usize>>) {
-        let mut dsu = DenseUF::new(N_NODES);
+        let mut uf = DenseUF::new(N_NODES);
 
-        let in_dsu = clusters.get(0).unwrap();
+        let in_uf = clusters.get(0).unwrap();
 
-        let first_id = *in_dsu.iter().take(1).next().unwrap();
-        for id in in_dsu {
-            dsu.join(*id, first_id);
+        let first_id = *in_uf.iter().take(1).next().unwrap();
+        for id in in_uf {
+            uf.join(*id, first_id);
         }
 
-        for id1 in in_dsu {
-            for id2 in in_dsu {
-                assert!(dsu.connected(*id1, *id2));
+        for id1 in in_uf {
+            for id2 in in_uf {
+                assert!(uf.connected(*id1, *id2));
             }
         }
     }

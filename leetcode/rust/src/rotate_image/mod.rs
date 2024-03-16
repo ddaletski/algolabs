@@ -16,10 +16,6 @@ impl Solution {
                 let c = matrix[xy2][xy2 - i];
                 let d = matrix[xy2 - i][xy1];
 
-                println!("i: {}, x1: {}, x2: {}", i, xy1, xy2);
-
-                println!("{}, {}, {}, {}", a, b, c, d);
-
                 matrix[xy1][xy1 + i] = d;
                 matrix[xy1 + i][xy2] = a;
                 matrix[xy2][xy2 - i] = b;

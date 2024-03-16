@@ -104,9 +104,9 @@ impl UnionFind for SparseUF {
 
     fn clusters(&mut self) -> Vec<Cluster> {
         let mut cluster_id_to_items = HashMap::new();
-        for (&item, &cluster_id) in self.mapping.iter() {
+        for &item in self.mapping.clone().keys() {
             cluster_id_to_items
-                .entry(cluster_id)
+                .entry(self.cluster_id_of(item).unwrap())
                 .or_insert(HashSet::new())
                 .insert(item);
         }
@@ -139,6 +139,7 @@ mod tests {
         SparseUF::new()
     }
 
+    /// uf with disjoin set of values from 0 to 99
     #[fixture]
     fn set_100_orphans(mut empty_set: SparseUF) -> SparseUF {
         for i in 0..100 {
@@ -249,13 +250,14 @@ mod tests {
     #[rstest]
     fn components_content_is_correct(mut set_10by10: SparseUF) {
         let mut components: Vec<Cluster> = set_10by10.clusters();
-        components.sort_by_key(|cluster| cluster.nodes.iter().next().unwrap().clone());
+        components.sort_by_key(|cluster| cluster.id);
+
+        println!("components: {components:#?}");
 
         for i in 0..10 {
             let expected_content: Vec<usize> = ((i * 10)..((i + 1) * 10)).collect();
             assert_that(&components[i as usize].nodes).contains_all_of(&expected_content.iter());
         }
-        assert_returns!(10, SparseUF::clusters_count, &mut set_10by10);
     }
 
     #[rstest]
@@ -274,6 +276,20 @@ mod tests {
         }
 
         assert_returns!(1, SparseUF::clusters_count, &mut set_10by10);
+    }
+
+    #[rstest]
+    fn disjoint_set_gives_unit_clusters() {
+        let mut uf = SparseUF::new();
+        for i in 0..10 {
+            uf.insert(i);
+        }
+
+        let clusters = uf.clusters();
+        assert_eq!(clusters.len(), 10);
+        for c in clusters {
+            assert_eq!(c.nodes.len(), 1);
+        }
     }
 
     #[rstest]

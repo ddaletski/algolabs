@@ -24,16 +24,16 @@ fn factors(num: usize) -> Vec<usize> {
 
 impl Solution {
     pub fn largest_component_size(nums: Vec<i32>) -> i32 {
-        let nums_set: HashSet<usize> = nums.iter().map(|&n| n as usize).collect();
-
         let mut set = SparseUF::new();
 
-        for num in nums.into_iter().map(|i| i as usize) {
+        for num in nums.iter().map(|&i| i as usize) {
             set.insert(num);
             for factor in factors(num) {
                 set.join(num, factor);
             }
         }
+
+        let nums_set: HashSet<usize> = nums.iter().map(|&n| n as usize).collect();
 
         set.clusters()
             .into_iter()
@@ -42,7 +42,7 @@ impl Solution {
                 cluster
                     .nodes
                     .into_iter()
-                    .filter_map(|number| nums_set.get(&number))
+                    .filter(|number| nums_set.contains(&number))
                     .count()
             })
             .max()
