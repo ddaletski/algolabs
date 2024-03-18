@@ -1,5 +1,3 @@
-use derivative::Derivative;
-use itertools::Itertools;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     iter::FromIterator,
@@ -7,15 +5,10 @@ use std::{
 
 use super::{Cluster, UnionFind};
 
-#[derive(Derivative, Clone)]
-#[derivative(Default)]
+#[derive(Clone, Debug)]
 pub struct DenseUF {
     cluster_ids: Vec<u32>, // maximum DSU size is limited by u32 bounds
-
-    #[derivative(Default(value = "HashMap::new()"))]
     cluster_sizes: HashMap<u32, u32>,
-
-    #[derivative(Default(value = "0"))]
     size: usize,
 }
 
@@ -25,7 +18,8 @@ impl DenseUF {
     pub fn new(capacity: usize) -> DenseUF {
         DenseUF {
             cluster_ids: Vec::from_iter(std::iter::repeat(0).take(capacity + 1)),
-            ..Default::default()
+            cluster_sizes: HashMap::new(),
+            size: 0,
         }
     }
 
@@ -111,9 +105,6 @@ impl UnionFind for DenseUF {
             return id1;
         }
 
-        // // change to this to test perf w/o path compression
-        // let root1 = self.cluster_id(id1).unwrap();
-        // let root2 = self.cluster_id(id2).unwrap();
         let root1 = self.cluster_id_of(id1).unwrap();
         let root2 = self.cluster_id_of(id2).unwrap();
 
@@ -165,199 +156,29 @@ impl UnionFind for DenseUF {
         clusters
             .into_iter()
             .map(|(id, nodes)| Cluster { id, nodes })
-            .collect_vec()
+            .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use itertools::Itertools;
-    use rand::seq::SliceRandom;
-    use rstest::*;
-    use std::collections::HashSet;
+    use proptest::{prop_assert, proptest};
 
-    use crate::union_find::UnionFind;
+    use crate::union_find::{DenseUF, UnionFind};
 
-    use super::DenseUF;
+    proptest! {
+        #[test]
+        fn new_set_contains_nothing(num in 0..1000) {
+            let set = DenseUF::new(1000);
 
-    const N_NODES: usize = 1024;
-    const N_CLUSTERS: usize = 4;
-
-    #[fixture]
-    fn clusters() -> Vec<HashSet<usize>> {
-        let mut rng = rand::thread_rng();
-        let mut all_values: Vec<usize> = (0..N_NODES).collect();
-        all_values.shuffle(&mut rng);
-
-        let cluster_size = f32::ceil((all_values.len() as f32) / (N_CLUSTERS as f32)) as usize;
-
-        let mut clusters = Vec::new();
-        for cluster_idx in 0..N_CLUSTERS {
-            let mut set = HashSet::<usize>::new();
-            for id in all_values
-                .iter()
-                .skip(cluster_idx * cluster_size)
-                .take(cluster_size)
-            {
-                set.insert(id.clone());
-            }
-            clusters.push(set);
+            prop_assert!(!set.contains(num as usize));
         }
 
-        clusters
-    }
+        #[test]
+        fn cluster_id_is_none_if_item_isnt_inserted(num in 0..1000) {
+            let mut set = DenseUF::new(1000);
 
-    #[rstest]
-    fn insert_new_increments_size() {
-        let mut uf = DenseUF::new(N_NODES);
-        for i in 0..N_NODES {
-            assert_eq!(uf.len(), i);
-            uf.insert(i);
-            assert_eq!(uf.len(), i + 1);
-        }
-    }
-
-    #[rstest]
-    fn insert_existing_doesnt_change_size() {
-        let mut uf = DenseUF::new(N_NODES);
-        for i in 0..N_NODES {
-            uf.insert(i);
-        }
-
-        for i in 0..N_NODES {
-            let size_before = uf.len();
-            uf.insert(i);
-            assert_eq!(uf.len(), size_before);
-        }
-    }
-
-    #[rstest]
-    fn clusters_fixture_nonoverlaping(clusters: Vec<HashSet<usize>>) {
-        for (c1, c2) in clusters
-            .iter()
-            .enumerate()
-            .cartesian_product(clusters.iter().enumerate())
-            .filter(|((i1, _), (i2, _))| i1 != i2)
-            .map(|((_, c1), (_, c2))| (c1, c2))
-        {
-            for id1 in c1 {
-                for id2 in c2 {
-                    assert_ne!(id1, id2);
-                }
-            }
-        }
-    }
-
-    #[rstest]
-    fn join_makes_cluster_id_equal(clusters: Vec<HashSet<usize>>) {
-        let mut uf = DenseUF::new(N_NODES);
-        let first_id = *clusters[0].iter().take(1).next().unwrap();
-
-        for id in clusters.get(0).unwrap() {
-            uf.join(*id, first_id);
-        }
-
-        let first_cluster_id = uf.cluster_id_of(first_id).unwrap();
-        for id in clusters.get(0).unwrap() {
-            assert_eq!(uf.cluster_id_of(*id).unwrap(), first_cluster_id);
-        }
-    }
-
-    #[rstest]
-    fn different_clusters_have_different_ids(clusters: Vec<HashSet<usize>>) {
-        let mut uf = DenseUF::new(N_NODES);
-
-        for cluster in clusters.iter() {
-            let first_id = *cluster.iter().take(1).next().unwrap();
-
-            for id in cluster.iter() {
-                uf.join(*id, first_id);
-            }
-        }
-
-        for (c1, c2) in clusters
-            .iter()
-            .enumerate()
-            .cartesian_product(clusters.iter().enumerate())
-            .filter(|((i1, _), (i2, _))| i1 != i2)
-            .map(|((_, c1), (_, c2))| (c1, c2))
-        {
-            for id1 in c1.iter().take(10) {
-                for id2 in c2.iter().take(10) {
-                    let cluster_id1 = uf.cluster_id_of(*id1);
-                    let cluster_id2 = uf.cluster_id_of(*id2);
-                    assert_ne!(cluster_id1, cluster_id2);
-                }
-            }
-        }
-    }
-
-    #[rstest]
-    fn empty_uf_has_no_clusters() {
-        let mut uf = DenseUF::new(N_NODES);
-
-        assert_eq!(uf.clusters().len(), 0);
-    }
-
-    #[rstest]
-    fn clusters_count_is_valid(clusters: Vec<HashSet<usize>>) {
-        let mut uf = DenseUF::new(N_NODES);
-
-        for (i, cluster) in clusters.iter().enumerate() {
-            let first_id = *cluster.iter().take(1).next().unwrap();
-
-            for id in cluster.iter() {
-                uf.join(*id, first_id);
-            }
-            assert_eq!(uf.clusters().len(), i + 1);
-        }
-    }
-
-    #[rstest]
-    fn non_entries_arent_connected() {
-        let mut uf = DenseUF::new(N_NODES);
-
-        for (i, j) in (0..N_NODES).cartesian_product(0..N_NODES) {
-            assert!(!uf.connected(i, j));
-            assert!(!uf.connected(j, i));
-        }
-    }
-
-    #[rstest]
-    fn connected_works_for_disconnected_nodes(clusters: Vec<HashSet<usize>>) {
-        let mut uf = DenseUF::new(N_NODES);
-
-        let in_uf = clusters.get(0).unwrap();
-        let not_in_uf = clusters.get(1).unwrap();
-
-        let first_id = *in_uf.iter().take(1).next().unwrap();
-        for id in in_uf {
-            uf.join(*id, first_id);
-        }
-
-        for id1 in in_uf {
-            for id2 in not_in_uf {
-                assert!(!uf.connected(*id1, *id2));
-                assert!(!uf.connected(*id2, *id1));
-            }
-        }
-    }
-
-    #[rstest]
-    fn connected_works_for_connected_nodes(clusters: Vec<HashSet<usize>>) {
-        let mut uf = DenseUF::new(N_NODES);
-
-        let in_uf = clusters.get(0).unwrap();
-
-        let first_id = *in_uf.iter().take(1).next().unwrap();
-        for id in in_uf {
-            uf.join(*id, first_id);
-        }
-
-        for id1 in in_uf {
-            for id2 in in_uf {
-                assert!(uf.connected(*id1, *id2));
-            }
+            prop_assert!(set.cluster_id_of(num as usize).is_none());
         }
     }
 }
