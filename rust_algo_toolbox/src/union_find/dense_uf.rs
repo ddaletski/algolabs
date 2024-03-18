@@ -1,13 +1,10 @@
-use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
-    iter::FromIterator,
-};
+use std::collections::{HashMap, HashSet};
 
 use super::{Cluster, UnionFind};
 
 #[derive(Clone, Debug)]
 pub struct DenseUF {
-    cluster_ids: Vec<u32>, // maximum DSU size is limited by u32 bounds
+    cluster_ids: Vec<u32>, // maximum item id is limited by u32 bounds
     cluster_sizes: HashMap<u32, u32>,
     size: usize,
 }
@@ -17,7 +14,7 @@ impl DenseUF {
     /// create an empty disjoint set union with a given capacity
     pub fn new(capacity: usize) -> DenseUF {
         DenseUF {
-            cluster_ids: Vec::from_iter(std::iter::repeat(0).take(capacity + 1)),
+            cluster_ids: vec![0; capacity + 1],
             cluster_sizes: HashMap::new(),
             size: 0,
         }
@@ -143,13 +140,12 @@ impl UnionFind for DenseUF {
     fn clusters(&mut self) -> Vec<Cluster> {
         let mut clusters = HashMap::<usize, HashSet<usize>>::new();
 
-        for id in 0..self.len() {
+        for id in 0..self.capacity() {
             if let Some(cluster_id_for_node) = self.cluster_id_of(id) {
-                match clusters.entry(cluster_id_for_node) {
-                    Entry::Occupied(o) => o.into_mut(),
-                    Entry::Vacant(v) => v.insert(HashSet::new()),
-                }
-                .insert(id);
+                clusters
+                    .entry(cluster_id_for_node)
+                    .or_insert_with(HashSet::new)
+                    .insert(id);
             }
         }
 
@@ -165,6 +161,12 @@ mod tests {
     use proptest::{prop_assert, proptest};
 
     use crate::union_find::{DenseUF, UnionFind};
+
+    #[test]
+    fn capacity_is_correct() {
+        let set = DenseUF::new(1000);
+        assert_eq!(set.capacity(), 1000);
+    }
 
     proptest! {
         #[test]
