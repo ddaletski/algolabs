@@ -1,248 +1,60 @@
-use std::{collections::HashMap, fmt::Debug, hash::Hash};
+pub mod hash_trie;
+pub mod ternary_trie;
 
-pub struct TrieNode<Char> {
-    pub character: Char,
-    pub word_end: bool,
-    children: HashMap<Char, Box<TrieNode<Char>>>,
+pub trait Trie {
+    type Char;
+
+    /// Insert an array of chars.
+    /// Returns false if the word already exists
+    fn insert(&mut self, word: impl Iterator<Item = Self::Char>) -> bool;
+
+    /// Check if a word is in the trie
+    fn contains(&self, word: impl Iterator<Item = Self::Char>) -> bool;
+
+    /// Check if a prefix is in the trie
+    fn contains_prefix(&self, prefix: impl Iterator<Item = Self::Char>) -> bool;
+
+    /// Number of words in the trie
+    fn len(&self) -> usize;
+
+    /// Check if the trie is empty
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
-impl<Char> TrieNode<Char>
+pub trait StringSet {
+    fn insert(&mut self, word: &str) -> bool;
+
+    fn contains(&self, word: &str) -> bool;
+
+    fn contains_prefix(&self, prefix: &str) -> bool;
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl<TrieImpl> StringSet for TrieImpl
 where
-    Char: Eq + Hash + Clone,
+    TrieImpl: Trie<Char = char>,
 {
-    pub fn new(character: Char, word_end: bool) -> Self {
-        TrieNode {
-            character,
-            word_end,
-            children: HashMap::new(),
-        }
+    fn insert(&mut self, word: &str) -> bool {
+        self.insert(word.chars())
     }
 
-    pub fn insert(&mut self, word: impl Iterator<Item = Char>) -> bool {
-        self.insert_impl(word)
+    fn contains(&self, word: &str) -> bool {
+        self.contains(word.chars())
     }
 
-    pub fn contains(&self, word: impl Iterator<Item = Char>) -> bool {
-        if let Some(node) = self.find_impl(word) {
-            node.word_end
-        } else {
-            false
-        }
+    fn contains_prefix(&self, prefix: &str) -> bool {
+        self.contains_prefix(prefix.chars())
     }
 
-    pub fn find_prefix(&self, prefix: impl Iterator<Item = Char>) -> Option<&Self> {
-        self.find_impl(prefix)
-    }
-
-    pub fn next(&self, next_char: Char) -> Option<&Self> {
-        self.children.get(&next_char).map(|b| b.as_ref())
-    }
-
-    pub fn children_count(&self) -> usize {
-        self.children.len()
-    }
-
-    pub fn children(&self) -> impl Iterator<Item = (&Char, &TrieNode<Char>)> {
-        self.children.iter().map(|(k, v)| (k, v.as_ref()))
-    }
-
-    fn insert_impl(&mut self, mut word: impl Iterator<Item = Char>) -> bool {
-        if let Some(next_char) = word.next() {
-            match &mut self.children.get_mut(&next_char) {
-                Some(next_node) => {
-                    return next_node.insert_impl(word);
-                }
-                None => {
-                    let mut next_node = Box::new(TrieNode::new(next_char.clone(), false));
-                    let result = next_node.insert_impl(word);
-
-                    self.children.insert(next_char, next_node);
-                    return result;
-                }
-            }
-        }
-
-        self.word_end = true;
-        true
-    }
-
-    fn find_impl(&self, mut word: impl Iterator<Item = Char>) -> Option<&Self> {
-        if let Some(next_char) = word.next() {
-            if let Some(next_node) = &self.children.get(&next_char) {
-                return next_node.find_impl(word);
-            }
-            return None;
-        }
-        Some(self)
-    }
-
-    fn fill_all_children(&self, current_word: &mut Vec<Char>, result: &mut Vec<Vec<Char>>) {
-        if self.word_end {
-            result.push(current_word.clone());
-        }
-
-        self.children.iter().for_each(|(next_char, next_node)| {
-            current_word.push(next_char.clone());
-            next_node.fill_all_children(current_word, result);
-            current_word.pop();
-        });
-    }
-}
-
-impl<Char> TrieNode<Char>
-where
-    Char: Debug,
-{
-    fn format_impl(&self, indent: usize, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let space = "| ".repeat(indent);
-        f.write_fmt(format_args!("{}{:?}\n", space, self.character))?;
-
-        for node in self.children.values() {
-            node.format_impl(indent + 1, f)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl<Char: Debug> Debug for TrieNode<Char> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.format_impl(0, f)?;
-        Ok(())
-    }
-}
-
-pub struct Trie<Char> {
-    root: TrieNode<Char>,
-    words_count: usize,
-}
-
-impl<Char> Trie<Char>
-where
-    Char: Eq + Hash + Clone + Debug + Default,
-{
-    pub fn new() -> Self {
-        Trie {
-            root: TrieNode::new(Char::default(), false),
-            words_count: 0,
-        }
-    }
-
-    pub fn insert(&mut self, word: impl Iterator<Item = Char>) -> bool {
-        let inserted = self.root.insert(word);
-
-        if inserted {
-            self.words_count += 1;
-        }
-
-        inserted
-    }
-
-    pub fn contains(&self, word: impl Iterator<Item = Char>) -> bool {
-        self.root.contains(word)
-    }
-
-    pub fn root(&self) -> &TrieNode<Char> {
-        &self.root
-    }
-
-    pub fn find_prefix(&self, prefix: impl Iterator<Item = Char>) -> Option<&TrieNode<Char>> {
-        self.root.find_prefix(prefix)
-    }
-
-    pub fn find_all(&self, prefix: impl Iterator<Item = Char>) -> Vec<Vec<Char>> {
-        let mut result = vec![];
-
-        let prefix_owned = prefix.collect::<Vec<_>>();
-
-        if let Some(starting_point) = self.root.find_prefix(prefix_owned.iter().cloned()) {
-            let mut current_word = prefix_owned;
-            starting_point.fill_all_children(&mut current_word, &mut result);
-        }
-
-        result
-    }
-
-    pub fn len(&self) -> usize {
-        self.words_count
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.words_count == 0
-    }
-}
-
-impl<Char> Default for Trie<Char>
-where
-    Char: Eq + Hash + Clone + Debug + Default,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<Char: Debug> Debug for Trie<Char> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.root.fmt(f)?;
-        Ok(())
-    }
-}
-
-pub struct CharTrie(Trie<char>);
-
-impl CharTrie {
-    pub fn new() -> Self {
-        Self(Trie::new())
-    }
-
-    pub fn insert(&mut self, word: &str) -> bool {
-        self.0.insert(word.chars())
-    }
-
-    pub fn contains(&self, word: &str) -> bool {
-        self.0.contains(word.chars())
-    }
-
-    pub fn root(&self) -> &TrieNode<char> {
-        &self.0.root
-    }
-
-    pub fn find_prefix(&self, prefix: &str) -> Option<&TrieNode<char>> {
-        self.0.find_prefix(prefix.chars())
-    }
-
-    pub fn find_all(&self, prefix: &str) -> Vec<String> {
-        self.0
-            .find_all(prefix.chars())
-            .into_iter()
-            .map(|chars| chars.into_iter().collect::<String>())
-            .collect()
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl Debug for CharTrie {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.root.fmt(f)?;
-        Ok(())
-    }
-}
-
-impl From<Vec<&str>> for CharTrie {
-    fn from(value: Vec<&str>) -> Self {
-        let mut trie = CharTrie::new();
-        value.into_iter().for_each(|s| {
-            trie.insert(s);
-        });
-
-        trie
+    fn len(&self) -> usize {
+        self.len()
     }
 }
 
@@ -259,8 +71,14 @@ mod test {
         distributions::{DistString, Uniform},
         prelude::Distribution,
     };
+    use std::fmt::Debug;
 
-    use super::CharTrie;
+    use super::{hash_trie::HashTrie, ternary_trie::TernaryTrie, StringSet};
+
+    trait PrintableTrie: StringSet + Debug {}
+    impl<T> PrintableTrie for T where T: StringSet + Debug {}
+
+    type DynStringSet = Box<dyn PrintableTrie>;
 
     lazy_static! {
         static ref RAND_WORDS: Vec<String> = {
@@ -309,34 +127,82 @@ mod test {
     }
 
     #[fixture]
-    fn top100trie(top100words: Vec<&str>) -> CharTrie {
-        CharTrie::from(top100words)
+    fn top100hash_trie(top100words: Vec<&str>) -> DynStringSet {
+        let mut top100trie = HashTrie::default();
+        for word in top100words {
+            top100trie.insert(word);
+        }
+        Box::new(top100trie)
     }
 
     #[fixture]
-    fn random_trie(random_words: Vec<&str>) -> CharTrie {
-        CharTrie::from(random_words)
+    fn random_hash_trie(random_words: Vec<&str>) -> DynStringSet {
+        let mut random_trie = HashTrie::default();
+        for word in random_words {
+            random_trie.insert(word);
+        }
+        Box::new(random_trie)
     }
 
     #[fixture]
-    fn lol_kek_chebureck_trie(lol_kek_chebureck_list: Vec<&str>) -> CharTrie {
-        CharTrie::from(lol_kek_chebureck_list)
+    fn lol_kek_chebureck_hash_trie(lol_kek_chebureck_list: Vec<&str>) -> DynStringSet {
+        let mut lol_kek_chebureck_trie = HashTrie::default();
+        for word in lol_kek_chebureck_list {
+            lol_kek_chebureck_trie.insert(word);
+        }
+        Box::new(lol_kek_chebureck_trie)
     }
+
+    #[fixture]
+    fn top100ternary_trie(top100words: Vec<&str>) -> DynStringSet {
+        let mut top100trie = HashTrie::default();
+        for word in top100words {
+            top100trie.insert(word);
+        }
+        Box::new(top100trie)
+    }
+
+    #[fixture]
+    fn random_ternary_trie(random_words: Vec<&str>) -> DynStringSet {
+        let mut random_trie = HashTrie::default();
+        for word in random_words {
+            random_trie.insert(word);
+        }
+        Box::new(random_trie)
+    }
+
+    #[fixture]
+    fn lol_kek_chebureck_ternary_trie(lol_kek_chebureck_list: Vec<&str>) -> DynStringSet {
+        let mut lol_kek_chebureck_trie = HashTrie::default();
+        for word in lol_kek_chebureck_list {
+            lol_kek_chebureck_trie.insert(word);
+        }
+        Box::new(lol_kek_chebureck_trie)
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////
 
     mod trie_contains_inserted_words {
+        use std::ops::Deref;
+
         use super::*;
 
         #[rstest]
-        fn random(random_trie: CharTrie, random_words: Vec<&str>) {
+        #[case(random_hash_trie(random_words()))]
+        #[case(random_ternary_trie(random_words()))]
+        fn random(#[case] random_trie: DynStringSet, random_words: Vec<&str>) {
             for word in random_words {
-                assert_returns!(true, CharTrie::contains, &random_trie, word);
+                //random_trie.contains(word);
+                assert_returns!(true, StringSet::contains, random_trie.deref(), word);
             }
         }
 
         #[rstest]
-        fn top100(top100trie: CharTrie, top100words: Vec<&str>) {
+        #[case(top100hash_trie(top100words()))]
+        #[case(top100ternary_trie(top100words()))]
+        fn top100(#[case] top100trie: DynStringSet, top100words: Vec<&str>) {
             for word in top100words {
-                assert_returns!(true, CharTrie::contains, &top100trie, word);
+                assert_returns!(true, StringSet::contains, top100trie.deref(), word);
             }
         }
     }
@@ -345,73 +211,56 @@ mod test {
         use super::*;
 
         #[rstest]
-        fn random(random_trie: CharTrie, random_words: Vec<&str>) {
+        #[case(random_hash_trie(random_words()))]
+        #[case(random_ternary_trie(random_words()))]
+        fn random(#[case] random_trie: DynStringSet, random_words: Vec<&str>) {
             for word in random_words {
-                let returned_node = random_trie.find_prefix(word);
-                assert!(returned_node.is_some());
-                assert!(returned_node.unwrap().word_end);
+                assert_returns!(true, StringSet::contains, &*random_trie, word);
             }
         }
 
         #[rstest]
-        fn top100(top100trie: CharTrie, top100words: Vec<&str>) {
+        #[case(top100hash_trie(top100words()))]
+        #[case(top100ternary_trie(top100words()))]
+        fn top100(#[case] top100trie: DynStringSet, top100words: Vec<&str>) {
             for word in top100words {
-                let returned_node = top100trie.find_prefix(word);
-                assert!(returned_node.is_some());
-                assert!(returned_node.unwrap().word_end);
+                assert_returns!(true, StringSet::contains, &*top100trie, word);
             }
         }
     }
 
     #[rstest]
-    fn find_incomplete_word_returns_node_with_word_end_equals_false(
-        lol_kek_chebureck_trie: CharTrie,
+    #[case(lol_kek_chebureck_hash_trie(lol_kek_chebureck_list()))]
+    #[case(lol_kek_chebureck_ternary_trie(lol_kek_chebureck_list()))]
+    fn insert_existing_returns_false(
+        #[case] mut trie: DynStringSet,
         lol_kek_chebureck_list: Vec<&str>,
     ) {
         for word in lol_kek_chebureck_list {
-            let incomplete_word = &word[0..word.len() - 1];
-            let found_node = lol_kek_chebureck_trie.find_prefix(incomplete_word);
-
-            assert!(found_node.is_some());
-            assert!(!found_node.unwrap().word_end);
+            assert_returns!(false, StringSet::insert, &mut *trie, word);
         }
     }
 
-    mod find_all {
-        use super::*;
-
-        #[rstest]
-        fn empty_prefix_populates_all_words(
-            lol_kek_chebureck_trie: CharTrie,
-            lol_kek_chebureck_list: Vec<&str>,
-        ) {
-            let mut expected_result: Vec<String> = lol_kek_chebureck_list
-                .into_iter()
-                .map(String::from)
-                .collect();
-            expected_result.sort();
-
-            let mut result = lol_kek_chebureck_trie.find_all("");
-            result.sort();
-
-            assert_eq!(result, expected_result);
+    #[rstest]
+    #[case(lol_kek_chebureck_hash_trie(lol_kek_chebureck_list()))]
+    #[case(lol_kek_chebureck_ternary_trie(lol_kek_chebureck_list()))]
+    fn insert_existing_doesnt_increase_size(
+        #[case] mut trie: DynStringSet,
+        lol_kek_chebureck_list: Vec<&str>,
+    ) {
+        for word in lol_kek_chebureck_list {
+            trie.insert(word);
+            assert_returns!(3, StringSet::len, &*trie);
         }
+    }
 
-        #[rstest]
-        fn find_all_works() {
-            let words_list = vec![
-                "abcaaaa", "abdaa", "bca", "abc0010", "abc", "0abc", "abcabc",
-            ];
-            let prefix = "abc";
-            let mut expected_result = vec!["abcaaaa", "abc0010", "abc", "abcabc"];
-            expected_result.sort();
-
-            let trie = CharTrie::from(words_list);
-
-            let mut result = trie.find_all(prefix);
-            result.sort();
-
-            assert_eq!(result, expected_result);
+    #[rstest]
+    #[case(lol_kek_chebureck_hash_trie(lol_kek_chebureck_list()))]
+    #[case(lol_kek_chebureck_ternary_trie(lol_kek_chebureck_list()))]
+    fn contains_prefix_works(#[case] trie: DynStringSet, lol_kek_chebureck_list: Vec<&str>) {
+        for word in lol_kek_chebureck_list {
+            let incomplete_word = &word[0..word.len() - 1];
+            assert_returns!(true, StringSet::contains_prefix, &*trie, incomplete_word);
         }
     }
 
@@ -419,20 +268,31 @@ mod test {
         use super::*;
 
         #[rstest]
-        fn empty_has_zero_len() {
-            assert_returns!(0, CharTrie::len, &CharTrie::new());
+        #[case(Box::new(HashTrie::default()))]
+        #[case(Box::new(TernaryTrie::default()))]
+        fn empty_has_zero_len(#[case] trie: DynStringSet) {
+            assert_returns!(0, StringSet::len, &*trie);
         }
 
         #[rstest]
-        fn top100trie_has_len_of_100(top100trie: CharTrie) {
-            assert_returns!(100, CharTrie::len, &top100trie);
+        #[case(top100hash_trie(top100words()))]
+        #[case(top100ternary_trie(top100words()))]
+        fn top100trie_has_len_of_100(#[case] top100trie: DynStringSet) {
+            assert_returns!(100, StringSet::len, &*top100trie);
         }
     }
 
     proptest! {
         #[test]
-        fn empty_trie_contains_nothing(ref word in ".*") {
-            let empty_trie = CharTrie::new();
+        fn empty_hash_trie_contains_nothing(ref word in ".*") {
+            let empty_trie = HashTrie::new();
+
+            assert!(!empty_trie.contains(word))
+        }
+
+        #[test]
+        fn empty_ternary_trie_contains_nothing(ref word in ".*") {
+            let empty_trie = TernaryTrie::new();
 
             assert!(!empty_trie.contains(word))
         }
