@@ -4,6 +4,7 @@ pub mod radix_sort;
 pub mod trie;
 pub mod union_find;
 pub mod weighted_graph;
+pub mod string_search;
 
 #[macro_export]
 macro_rules! format_expr_kv {
