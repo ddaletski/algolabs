@@ -20,7 +20,7 @@ fn pow(x: usize, p: usize) -> usize {
     result
 }
 
-pub fn rabin_karp_str(text: &str, pattern: &str) -> Option<usize> {
+pub fn rabin_karp(text: &str, pattern: &str) -> Option<usize> {
     let Some(pos) = rabin_karp_slice(text.as_bytes(), pattern.as_bytes()) else {
         return None;
     };
@@ -94,7 +94,7 @@ mod test {
         #[case] pattern: &str,
         #[case] expected: Option<usize>,
     ) {
-        assert_returns!(expected, rabin_karp_str, text, pattern);
+        assert_returns!(expected, rabin_karp, text, pattern);
     }
 
     #[rstest]
@@ -106,7 +106,7 @@ mod test {
         #[case] pattern: &str,
         #[case] expected: Option<usize>,
     ) {
-        assert_returns!(expected, rabin_karp_str, text, pattern);
+        assert_returns!(expected, rabin_karp, text, pattern);
     }
 
     #[rstest]
@@ -117,7 +117,7 @@ mod test {
         #[case] pattern: &str,
         #[case] expected: Option<usize>,
     ) {
-        assert_returns!(expected, rabin_karp_str, text, pattern);
+        assert_returns!(expected, rabin_karp, text, pattern);
     }
 
     #[rstest]
@@ -128,6 +128,6 @@ mod test {
         #[case] pattern: &str,
         #[case] expected: Option<usize>,
     ) {
-        assert_returns!(expected, rabin_karp_str, text, pattern);
+        assert_returns!(expected, rabin_karp, text, pattern);
     }
 }
