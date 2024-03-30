@@ -24,7 +24,7 @@ where
         self.insert_impl(word)
     }
 
-    fn find_prefix(&self, mut prefix: impl Iterator<Item = Char>) -> Option<&Self> {
+    pub fn find_prefix(&self, mut prefix: impl Iterator<Item = Char>) -> Option<&Self> {
         if let Some(next_char) = prefix.next() {
             if let Some(next_node) = self.children.get(&next_char) {
                 return next_node.deref().find_prefix(prefix);
@@ -56,6 +56,14 @@ where
 
         self.word_end = true;
         true
+    }
+
+    pub fn word_end(&self) -> bool {
+        self.word_end
+    }
+
+    pub fn next(&self, character: Char) -> Option<&HashTrieNode<Char>> {
+        self.children.get(&character).map(|node| node.deref())
     }
 }
 
@@ -95,6 +103,42 @@ where
         HashTrie {
             root: HashTrieNode::new(Char::default(), false),
             words_count: 0,
+        }
+    }
+
+    pub fn root(&self) -> &HashTrieNode<Char> {
+        &self.root
+    }
+
+    pub fn find_all(&self, prefix: impl Iterator<Item = Char>) -> Vec<Vec<Char>> {
+        let mut result = vec![];
+        let prefix_node = self.root.find_prefix(prefix);
+
+        let Some(prefix_node) = prefix_node else {
+            return result;
+        };
+
+        let mut prefix_chars = vec![];
+        prefix_chars.push(prefix_node.character.clone());
+        self.find_all_impl(prefix_node, &mut prefix_chars, &mut result);
+
+        result
+    }
+
+    fn find_all_impl(
+        &self,
+        node: &HashTrieNode<Char>,
+        prefix_chars: &mut Vec<Char>,
+        result: &mut Vec<Vec<Char>>,
+    ) {
+        if node.word_end {
+            result.push(prefix_chars.clone());
+        }
+
+        for child in node.children.values() {
+            prefix_chars.push(child.character.clone());
+            self.find_all_impl(child, prefix_chars, result);
+            prefix_chars.pop();
         }
     }
 }

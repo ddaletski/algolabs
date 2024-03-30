@@ -42,3 +42,4 @@ mod three_sum;
 mod three_sum_closest;
 mod word_break;
 mod word_search;
+mod subarray_sum_equals_k;

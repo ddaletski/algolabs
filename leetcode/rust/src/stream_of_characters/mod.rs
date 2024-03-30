@@ -1,18 +1,21 @@
 use std::collections::LinkedList;
 
-use algo_toolbox::trie::{CharTrie, TrieNode};
+use algo_toolbox::trie::{
+    hash_trie::{HashTrie, HashTrieNode},
+    StringSet,
+};
 
 /////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
 pub struct StreamChecker {
-    trie: CharTrie,
-    current_matches: LinkedList<*const TrieNode<char>>,
+    trie: HashTrie<char>,
+    current_matches: LinkedList<*const HashTrieNode<char>>,
 }
 
 impl StreamChecker {
     pub fn new(words: Vec<String>) -> Self {
-        let mut trie = CharTrie::new();
+        let mut trie = HashTrie::new();
         for word in words {
             trie.insert(&word);
         }
@@ -30,15 +33,15 @@ impl StreamChecker {
                 if let Some(child) = node.as_ref().unwrap().find_prefix(std::iter::once(letter)) {
                     self.current_matches.push_back(child);
 
-                    if child.word_end {
+                    if child.word_end() {
                         result = true;
                     }
                 }
             }
 
-            if let Some(word_start) = self.trie.find_prefix(&letter.to_string()) {
+            if let Some(word_start) = self.trie.root().find_prefix(std::iter::once(letter)) {
                 self.current_matches.push_back(word_start);
-                if word_start.word_end {
+                if word_start.word_end() {
                     result = true;
                 }
             }

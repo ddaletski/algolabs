@@ -29,7 +29,7 @@ where
             .unwrap_or(false)
     }
 
-    fn find_prefix(&self, prefix: impl Iterator<Item = Char>) -> Option<&Self> {
+    pub fn find_prefix(&self, prefix: impl Iterator<Item = Char>) -> Option<&Self> {
         self.find_prefix_impl(prefix.peekable())
     }
 
@@ -76,6 +76,10 @@ where
         };
 
         child.find_prefix_impl(word)
+    }
+
+    pub fn word_end(&self) -> bool {
+        self.word_end
     }
 }
 

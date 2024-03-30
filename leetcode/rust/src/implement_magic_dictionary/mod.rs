@@ -1,19 +1,19 @@
-use algo_toolbox::trie::{CharTrie, TrieNode};
+use algo_toolbox::trie::{hash_trie::{HashTrie, HashTrieNode}, StringSet};
 
 #[derive(Debug)]
 struct MagicDictionary {
-    trie: CharTrie,
+    trie: HashTrie<char>
 }
 
 struct SearchState<'a> {
-    node: &'a TrieNode<char>,
+    node: &'a HashTrieNode<char>,
     word_pos: usize,
     replacement_left: bool,
 }
 
 impl MagicDictionary {
     pub fn new() -> Self {
-        MagicDictionary { trie: CharTrie::new() }
+        MagicDictionary { trie: HashTrie::new() }
     }
 
     pub fn build_dict(&mut self, dictionary: Vec<String>) {
@@ -35,7 +35,7 @@ impl MagicDictionary {
 
         while let Some(current_state) = stack.pop() {
             if current_state.word_pos == chars.len() {
-                if current_state.node.word_end && !current_state.replacement_left {
+                if current_state.node.word_end() && !current_state.replacement_left {
                     return true;
                 } else {
                     continue;

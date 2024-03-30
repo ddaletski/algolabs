@@ -1,19 +1,19 @@
 use std::collections::{HashMap, HashSet};
 
-use algo_toolbox::trie::CharTrie;
+use algo_toolbox::trie::{hash_trie::HashTrie, StringSet};
 
 #[allow(unused)]
 struct WordFilter1 {
-    forward_trie: CharTrie,
-    backward_trie: CharTrie,
+    forward_trie: HashTrie<char>,
+    backward_trie: HashTrie<char>,
     index_mapping: HashMap<String, i32>,
 }
 
 #[allow(unused)]
 impl WordFilter1 {
     fn new(words: Vec<String>) -> Self {
-        let mut fw = CharTrie::new();
-        let mut bw = CharTrie::new();
+        let mut fw = HashTrie::new();
+        let mut bw = HashTrie::new();
 
         words.iter().for_each(|word| {
             let word_reversed: String = word.chars().rev().collect();
@@ -37,12 +37,18 @@ impl WordFilter1 {
     fn f(&self, pref: String, suff: String) -> i32 {
         let suffix_reversed: String = suff.chars().rev().collect();
 
-        let prefix_set: HashSet<String> = self.forward_trie.find_all(&pref).into_iter().collect();
+        let prefix_set: HashSet<String> = self
+            .forward_trie
+            .find_all(pref.chars())
+            .into_iter()
+            .map(|word| word.into_iter().collect())
+            .collect();
+
         let suffix_set: HashSet<String> = self
             .backward_trie
-            .find_all(&suffix_reversed)
+            .find_all(suffix_reversed.chars())
             .into_iter()
-            .map(|word_rev| word_rev.chars().rev().collect())
+            .map(|word_rev| word_rev.into_iter().rev().collect())
             .collect();
 
         let common_set = prefix_set.intersection(&suffix_set);
