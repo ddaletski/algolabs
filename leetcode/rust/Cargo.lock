@@ -425,6 +425,7 @@ version = "1.0.0"
 dependencies = [
  "algo_toolbox",
  "criterion",
+ "itertools 0.12.1",
  "lazy_static",
  "proptest",
  "rand 0.8.5",
