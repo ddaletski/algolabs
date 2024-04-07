@@ -427,6 +427,7 @@ dependencies = [
  "criterion",
  "itertools 0.12.1",
  "lazy_static",
+ "num-traits",
  "proptest",
  "rand 0.8.5",
  "rstest",
