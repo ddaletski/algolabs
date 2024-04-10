@@ -24,4 +24,20 @@ impl<T> TreeNode<T> {
     pub fn new_link(val: T, left: NodeLink<T>, right: NodeLink<T>) -> NodeLink<T> {
         Some(Rc::new(RefCell::new(TreeNode { val, left, right })))
     }
+
+    pub fn from_vec_dfs(vec: Vec<Option<T>>) -> NodeLink<T> {
+        let mut vec = vec;
+        Self::dfs(&mut vec)
+    }
+
+    fn dfs(vec: &mut Vec<Option<T>>) -> NodeLink<T> {
+        if vec.is_empty() {
+            None
+        } else {
+            let val = vec.remove(0)?;
+            let left = Self::dfs(vec);
+            let right = Self::dfs(vec);
+            Self::new_link(val, left, right)
+        }
+    }
 }
