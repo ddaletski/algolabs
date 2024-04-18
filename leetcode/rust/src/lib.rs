@@ -57,3 +57,4 @@ mod word_ladder;
 mod binary_tree_maximum_path_sum;
 mod minimum_genetic_mutation;
 mod surrounded_regions;
+mod remove_nth_node_from_end_of_list;
