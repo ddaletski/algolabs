@@ -59,3 +59,4 @@ mod minimum_genetic_mutation;
 mod surrounded_regions;
 mod remove_nth_node_from_end_of_list;
 mod sum_of_two_integers;
+mod increasing_triplet_subsequence;
