@@ -60,3 +60,4 @@ mod surrounded_regions;
 mod remove_nth_node_from_end_of_list;
 mod sum_of_two_integers;
 mod increasing_triplet_subsequence;
+mod kth_smallest_element_in_a_bst;
