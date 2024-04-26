@@ -2,7 +2,6 @@
 #![allow(dead_code)]
 
 extern crate test;
-
 pub use algo_toolbox::{assert_returns, parse_2d_array, vec2d};
 
 mod binary_tree_maximum_path_sum;
@@ -48,6 +47,7 @@ mod repeated_dna_sequences;
 mod rotate_image;
 mod search_a_2d_matrix;
 mod serialize_and_deserialize_binary_tree;
+mod shuffle_an_array;
 mod single_threaded_cpu;
 mod snapshot_array;
 mod stream_of_characters;

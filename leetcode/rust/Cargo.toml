@@ -4,13 +4,13 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-algo_toolbox = { path = "../../rust_algo_toolbox" }
+algo_toolbox.path = "../../rust_algo_toolbox"
+rand = "0.8"
 
 [dev-dependencies]
 rstest = "0.18"
 proptest = "1.4"
 lazy_static = "1.4"
-rand = "0.8"
 spectral = "0.6"
 criterion = "0.5"
 itertools = "0.12"

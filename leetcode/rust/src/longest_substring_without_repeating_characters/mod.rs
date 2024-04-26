@@ -2,23 +2,20 @@ struct Solution;
 
 impl Solution {
     pub fn length_of_longest_substring(s: String) -> i32 {
-        let bytes = s.as_bytes();
-
-        let mut left = 0;
-        let mut right = left;
-
-        let mut chars_met = vec![false; 256];
         let mut longest = 0;
+        let mut positions = [-1i32; 256];
 
-        while right < bytes.len() {
-            let current_char_index = bytes[right] as usize;
-            while chars_met[current_char_index] {
-                chars_met[bytes[left] as usize] = false;
-                left += 1;
+        let mut start = 0i32;
+        for (pos, ch) in s.into_bytes().into_iter().enumerate() {
+            let pos = pos as i32;
+            let other_pos = positions[ch as usize];
+            if other_pos < start {
+                // either not met yet or outdated
+                longest = longest.max(pos - start + 1);
+            } else {
+                start = other_pos + 1;
             }
-            chars_met[current_char_index] = true;
-            right += 1;
-            longest = longest.max(right - left);
+            positions[ch as usize] = pos;
         }
 
         longest as i32
@@ -26,23 +23,26 @@ impl Solution {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::common::random_uniform_list;
-
+mod test {
     use super::*;
-    use algo_toolbox::assert_returns;
-    use rstest::rstest;
+    use crate::{assert_returns, common::random_uniform_list};
 
-    #[rstest]
+    #[rstest::rstest]
     #[case("abcabcbb", 3)]
     #[case("bbbbb", 1)]
     #[case("pwwkew", 3)]
-    fn it_works(#[case] s: String, #[case] expected: i32) {
-        assert_returns!(expected, Solution::length_of_longest_substring, s);
+    #[case(" ", 1)]
+    #[case("au", 2)]
+    fn case(#[case] s: &str, #[case] expected: i32) {
+        assert_returns!(
+            expected,
+            Solution::length_of_longest_substring,
+            s.to_string()
+        );
     }
 
     #[bench]
-    fn bench(b: &mut test::Bencher) {
+    fn bench(b: &mut ::test::Bencher) {
         let random_string: String = random_uniform_list::<char>(10000, 0 as char, 255 as char)
             .into_iter()
             .collect();
