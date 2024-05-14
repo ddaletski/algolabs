@@ -64,3 +64,4 @@ mod word_ladder;
 mod word_search;
 mod detonate_the_maximum_bombs;
 mod maximum_strictly_increasing_cells_in_a_matrix;
+mod search_insert_position;
