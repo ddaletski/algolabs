@@ -14,6 +14,11 @@ impl<T> ListNode<T> {
     fn new_link(val: T, next: Option<Box<Self>>) -> Option<Box<Self>> {
         Some(Box::new(ListNode { val, next }))
     }
+
+    #[inline]
+    pub fn from_vec(values: Vec<T>) -> Option<Box<Self>> {
+        vec_to_list(values)
+    }
 }
 
 pub fn vec_to_list<T>(mut values: Vec<T>) -> Option<Box<ListNode<T>>> {
@@ -36,6 +41,16 @@ pub fn list_to_vec<T>(list: Option<Box<ListNode<T>>>) -> Vec<T> {
     }
 
     result
+}
+
+pub trait IntoVec<T> {
+    fn into_vec(self) -> Vec<T>;
+}
+
+impl<T> IntoVec<T> for Option<Box<ListNode<T>>> {
+    fn into_vec(self) -> Vec<T> {
+        list_to_vec(self)
+    }
 }
 
 #[cfg(test)]
