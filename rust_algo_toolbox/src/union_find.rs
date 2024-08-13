@@ -3,14 +3,11 @@ mod sparse_uf;
 use std::collections::HashSet;
 
 pub use dense_uf::*;
-use derivative::Derivative;
 pub use sparse_uf::SparseUF;
 
-#[derive(Derivative)]
-#[derivative(Default, Debug)]
+#[derive(Debug)]
 pub struct Cluster {
     pub id: usize,
-    #[derivative(Default(value = "HashSet::new()"))]
     pub nodes: HashSet<usize>,
 }
 

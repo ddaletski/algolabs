@@ -5,7 +5,7 @@ use super::{Cluster, UnionFind};
 #[derive(Clone, Debug)]
 pub struct DenseUF {
     cluster_ids: Vec<u32>, // maximum item id is limited by u32 bounds
-    cluster_sizes: HashMap<u32, u32>,
+    cluster_sizes: Vec<u32>,
     size: usize,
 }
 
@@ -15,7 +15,7 @@ impl DenseUF {
     pub fn new(capacity: usize) -> DenseUF {
         DenseUF {
             cluster_ids: vec![0; capacity + 1],
-            cluster_sizes: HashMap::new(),
+            cluster_sizes: vec![0; capacity + 1],
             size: 0,
         }
     }
@@ -34,7 +34,7 @@ impl DenseUF {
 
         let cluster_id = self.cluster_id_of(item);
         if let Some(cluster_id) = cluster_id {
-            let size = self.cluster_sizes.get(&(cluster_id as u32)).unwrap_or(&1);
+            let size = self.cluster_sizes.get(cluster_id).unwrap_or(&1);
 
             *size as usize
         } else {
@@ -114,15 +114,13 @@ impl UnionFind for DenseUF {
 
         if size1 < size2 {
             self.cluster_ids[root1 + 1] = (root2 + 1) as u32;
-            self.cluster_sizes.remove(&(root1 as u32));
-            self.cluster_sizes
-                .insert(root2 as u32, (size1 + size2) as u32);
+            self.cluster_sizes[root1] = 0;
+            self.cluster_sizes[root2] = (size1 + size2) as u32;
             root2
         } else {
             self.cluster_ids[root2 + 1] = (root1 + 1) as u32;
-            self.cluster_sizes.remove(&(root2 as u32));
-            self.cluster_sizes
-                .insert(root1 as u32, (size1 + size2) as u32);
+            self.cluster_sizes[root2] = 0;
+            self.cluster_sizes[root1] = (size1 + size2) as u32;
             root1
         }
     }
