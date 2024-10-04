@@ -1,10 +1,12 @@
 pub mod counting_sort;
 pub mod kdtree;
+pub mod ordered_counter;
 pub mod radix_sort;
+pub mod stateful_iterator;
+pub mod string_search;
 pub mod trie;
 pub mod union_find;
 pub mod weighted_graph;
-pub mod string_search;
 
 #[macro_export]
 macro_rules! format_expr_kv {
