@@ -67,3 +67,4 @@ mod trapping_rain_water;
 mod word_break;
 mod word_ladder;
 mod word_search;
+mod all_oone_data_structure;
