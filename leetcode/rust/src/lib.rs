@@ -4,6 +4,7 @@
 extern crate test;
 pub use algo_toolbox::{assert_returns, parse_2d_array, vec2d};
 
+mod all_oone_data_structure;
 mod binary_tree_maximum_path_sum;
 mod common;
 mod container_with_most_water;
@@ -53,6 +54,7 @@ mod search_insert_position;
 mod serialize_and_deserialize_binary_tree;
 mod shuffle_an_array;
 mod single_threaded_cpu;
+mod smallest_range_covering_elements_from_k_lists;
 mod snapshot_array;
 mod stream_of_characters;
 mod subarray_sum_equals_k;
@@ -67,4 +69,3 @@ mod trapping_rain_water;
 mod word_break;
 mod word_ladder;
 mod word_search;
-mod all_oone_data_structure;

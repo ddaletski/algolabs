@@ -1,4 +1,4 @@
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use gif::{Encoder, Frame};
 use indicatif::ProgressIterator;
 use itertools::Itertools;
@@ -9,15 +9,14 @@ use std::fs::File;
 use percolations::Percolation;
 
 /// Grid percolation simulation
-#[derive(Clap)]
+#[derive(clap::Parser)]
 #[clap(version = "1.0", author = "Denis Dalecki (daletskidenis@gmail.com)")]
-#[clap(setting = AppSettings::ColoredHelp)]
-struct Opts {
+struct Cli {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(clap::Subcommand)]
 enum SubCommand {
     /// visualize grid percolation
     Visualize(Visualize),
@@ -26,7 +25,7 @@ enum SubCommand {
     Threshold(Threshold),
 }
 
-#[derive(Clap)]
+#[derive(clap::Args)]
 struct Visualize {
     /// percolation grid size
     #[clap(short, long)]
@@ -37,7 +36,7 @@ struct Visualize {
     out: String,
 }
 
-#[derive(Clap)]
+#[derive(clap::Args)]
 struct Threshold {
     /// percolation grid height
     #[clap(short, long)]
@@ -106,9 +105,9 @@ fn calc_percolation_threshold(rows: usize, cols: usize) -> f64 {
 }
 
 fn main() {
-    let opts: Opts = Opts::parse();
+    let cli: Cli = Cli::parse();
 
-    match opts.subcmd {
+    match cli.subcmd {
         SubCommand::Visualize(v) => {
             let grid_size = v.size as usize;
             if grid_size == 0 || grid_size > 100 {

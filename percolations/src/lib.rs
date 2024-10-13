@@ -1,4 +1,4 @@
-use disjoint_sets::FastUnionDSU;
+use algo_toolbox::union_find::{DenseUF, UnionFind};
 use itertools::Itertools;
 
 pub struct Percolation {
@@ -12,7 +12,7 @@ pub struct Percolation {
           \  ׀     /
         (bottom cell)
     */
-    dsu: FastUnionDSU,
+    uf: DenseUF,
     width: usize,
 }
 
@@ -33,7 +33,7 @@ impl Percolation {
     }
 
     fn bottom_id(&self) -> usize {
-        self.dsu.max_size() - 1
+        self.uf.capacity() - 1
     }
 
     fn dsu_id_for(&self, row: usize, col: usize) -> usize {
@@ -49,12 +49,12 @@ impl Percolation {
 
         // + two hidden cells for the top and bottom
         let mut this = Percolation {
-            dsu: FastUnionDSU::new(rows * cols + 2),
+            uf: DenseUF::new(rows * cols + 2),
             width: cols,
         };
 
-        this.dsu.insert(this.top_id());
-        this.dsu.insert(this.bottom_id());
+        this.uf.insert(this.top_id());
+        this.uf.insert(this.bottom_id());
 
         this
     }
@@ -64,12 +64,12 @@ impl Percolation {
     }
 
     pub fn height(&self) -> usize {
-        (self.dsu.max_size() - 2) / self.width
+        (self.uf.capacity() - 2) / self.width
     }
 
     pub fn open(&mut self, row: usize, col: usize) {
         let current_cell_id = self.dsu_id_for(row, col);
-        self.dsu.insert(current_cell_id);
+        self.uf.insert(current_cell_id);
 
         let neighbors = vec![(-1, 0), (1, 0), (0, -1), (0, 1)]
             .iter() // 4-connected neighbors relative pos.
@@ -78,39 +78,39 @@ impl Percolation {
                 y.between(0, self.height() as i64) && x.between(0, self.width() as i64)
             }) // inside grid bounds
             .map(|(y, x)| (self.dsu_id_for(y as usize, x as usize))) // dsu id
-            .filter(|id| self.dsu.contains(*id))
+            .filter(|id| self.uf.contains(*id))
             .collect_vec();
 
         for id in neighbors {
-            self.dsu.join(id, current_cell_id)
+            self.uf.join(id, current_cell_id);
         }
 
         if row == 0 {
-            self.dsu.join(current_cell_id, self.top_id())
+            self.uf.join(current_cell_id, self.top_id());
         }
 
         if row == self.height() - 1 {
-            self.dsu.join(current_cell_id, self.bottom_id())
+            self.uf.join(current_cell_id, self.bottom_id());
         }
     }
 
     pub fn is_open(&self, row: usize, col: usize) -> bool {
-        self.dsu.contains(self.dsu_id_for(row, col))
+        self.uf.contains(self.dsu_id_for(row, col))
     }
 
-    pub fn is_full(&self, row: usize, col: usize) -> bool {
-        self.dsu.connected(self.top_id(), self.dsu_id_for(row, col))
+    pub fn is_full(&mut self, row: usize, col: usize) -> bool {
+        self.uf.connected(self.top_id(), self.dsu_id_for(row, col))
     }
 
     pub fn count_open(&self) -> usize {
-        self.dsu.size() - 2
+        self.uf.len() - 2
     }
 
-    pub fn percolates(&self) -> bool {
-        self.dsu.connected(self.top_id(), self.bottom_id())
+    pub fn percolates(&mut self) -> bool {
+        self.uf.connected(self.top_id(), self.bottom_id())
     }
 
-    pub fn grid(&self) -> ndarray::Array2<u8> {
+    pub fn grid(&mut self) -> ndarray::Array2<u8> {
         let mut grid = ndarray::Array2::<u8>::zeros((self.height(), self.width()));
 
         for ((row, col), cell) in grid.indexed_iter_mut() {
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn default_grid_doesnt_percolate() {
-        let p = Percolation::new(100, 100);
+        let mut p = Percolation::new(100, 100);
         assert!(!p.percolates());
     }
 
