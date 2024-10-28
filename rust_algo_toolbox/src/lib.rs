@@ -1,13 +1,14 @@
 pub mod counting_sort;
+pub mod hashtable;
 pub mod kdtree;
 pub mod ordered_counter;
+pub mod pqueue;
 pub mod radix_sort;
 pub mod stateful_iterator;
 pub mod string_search;
 pub mod trie;
 pub mod union_find;
 pub mod weighted_graph;
-pub mod hashtable;
 
 #[macro_export]
 macro_rules! format_expr_kv {
