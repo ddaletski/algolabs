@@ -22,13 +22,13 @@ impl<K, V> Default for Bucket<K, V> {
 
 const DEFAULT_CAPACITY: usize = 16;
 
-pub struct HashTable<K, V> 
+pub struct HashTable<K, V>
 {
     table: Vec<Bucket<K, V>>,
     count: usize
 }
 
-impl<K, V> HashTable<K, V> 
+impl<K, V> HashTable<K, V>
 where K: Eq + std::hash::Hash
 {
     pub fn new() -> HashTable<K, V> {
@@ -81,7 +81,7 @@ where K: Eq + std::hash::Hash
     }
 }
 
-impl<K, V> Index<&K> for HashTable<K, V> 
+impl<K, V> Index<&K> for HashTable<K, V>
 where K: Eq + std::hash::Hash
 {
     type Output = V;
@@ -143,7 +143,7 @@ mod tests {
 
         let mut rng = rand::thread_rng();
         for _ in 0..20 {
-            let idx = rng.gen_range(0, 10);
+            let idx = rng.gen_range(0..10);
             let (k, v) = pairs[idx];
 
             let value_in_table_get = ht.get(k);
