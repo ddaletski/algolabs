@@ -1,4 +1,4 @@
-use algo_toolbox::pqueue::{dway_heap::DWayMaxHeap, MaxPriorityQueue};
+use algo_toolbox::pqueue::dway_heap::DWayMaxHeap;
 use std::{collections::BinaryHeap, time::Duration};
 
 use criterion::{criterion_group, BenchmarkId, Criterion};
@@ -47,24 +47,24 @@ fn bench_on_dataset(
     for i in [100_000, 300_000, 600_000, 1_000_000] {
         group.bench_with_input(BenchmarkId::new("std::BinaryHeap", i), &i, |b, i| {
             let data = data_gen(*i);
-            let heap: BinaryHeap<i32> = data.iter().cloned().collect();
             b.iter(|| {
+                let heap: BinaryHeap<i32> = data.iter().cloned().collect();
                 let _: Vec<i32> = heap.clone().into_sorted_vec();
             });
         });
 
         group.bench_with_input(BenchmarkId::new("4-way heap", i), &i, |b, i| {
             let data = data_gen(*i);
-            let heap: DWayMaxHeap<i32, 4> = data.iter().cloned().collect();
             b.iter(|| {
+                let heap: DWayMaxHeap<i32, 4> = data.iter().cloned().collect();
                 let _: Vec<i32> = heap.clone().into_sorted_vec();
             });
         });
 
         group.bench_with_input(BenchmarkId::new("8-way heap", i), &i, |b, i| {
             let data = data_gen(*i);
-            let heap: DWayMaxHeap<i32, 8> = data.iter().cloned().collect();
             b.iter(|| {
+                let heap: DWayMaxHeap<i32, 8> = data.iter().cloned().collect();
                 let _: Vec<i32> = heap.clone().into_sorted_vec();
             });
         });

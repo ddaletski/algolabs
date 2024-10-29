@@ -70,17 +70,17 @@ impl<T: Ord, const D: usize> DWayMaxHeap<T, D> {
         if slice_end <= slice_start {
             return;
         }
-        let children = &self.data[slice_start..slice_end];
 
-        let max_idx = children
-            .iter()
-            .enumerate()
-            .max_by_key(|&(_, val)| val)
-            .unwrap()
-            .0
-            + slice_start;
+        let mut max_val = &self.data[idx];
+        let mut max_idx = idx;
+        for i in slice_start..slice_end {
+            if &self.data[i] > max_val {
+                max_idx = i;
+                max_val = &self.data[i];
+            }
+        }
 
-        if self.data[max_idx] <= self.data[idx] {
+        if idx == max_idx {
             return;
         }
 
