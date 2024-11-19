@@ -1,0 +1,23 @@
+[package]
+name = "matmul_rs"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+criterion = { version = "0.5" }
+rstest = "0.23.0"
+rand = "0.8.5"
+approx = "0.5.1"
+bytemuck = "1.19.0"
+
+[dependencies]
+itertools = "0.13.0"
+rayon = "1.10.0"
+
+[profile.bench]
+opt-level = 3
+
+
+[[bench]]
+name = "benches"
+harness = false
