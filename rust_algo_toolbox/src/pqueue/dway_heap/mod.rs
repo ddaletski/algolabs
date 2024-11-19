@@ -127,6 +127,7 @@ impl<T: Ord, const D: usize> MaxPriorityQueue<T> for DWayMaxHeap<T, D> {
 #[cfg(test)]
 mod tests {
     use rand::{Rng, SeedableRng};
+    use tap::Tap;
 
     use super::*;
 
@@ -175,11 +176,7 @@ mod tests {
     fn heap_is_sorted(data: Vec<i32>) {
         let heap: DWayMaxHeap<i32, D> = data.iter().cloned().collect();
         let heap_sorted = heap.into_iter().collect::<Vec<_>>();
-        let sorted = {
-            let mut sorted = data;
-            sorted.sort_unstable_by_key(|v| -v);
-            sorted
-        };
+        let sorted = data.tap_mut(|vec| vec.sort_unstable_by_key(|val| -val));
 
         assert_eq!(heap_sorted, sorted);
     }
