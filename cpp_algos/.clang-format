@@ -1,0 +1,36 @@
+# Clang-Format Style Options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+---
+BasedOnStyle: Chromium
+IndentWidth: 4
+ColumnLimit: 120
+---
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+ColumnLimit: 120
+AccessModifierOffset: -2
+
+BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: All
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+BraceWrapping:
+    AfterFunction: false
+    AfterControlStatement: MultiLine
+    AfterExternBlock: true
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: true
+
+CompactNamespaces: false
+FixNamespaceComments: true
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+---
