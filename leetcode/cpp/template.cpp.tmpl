@@ -1,0 +1,31 @@
+#include <catch2/catch_all.hpp>
+#include <vector>
+#include <string>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <stack>
+#include <queue>
+#include <deque>
+#include <list>
+#include <tuple>
+#include <random>
+#include <algorithm>
+#include <numeric>
+#include <functional>
+
+struct Solution {
+};
+
+TEST_CASE("%%PROBLEM_NAME%%") {
+    int x = 2;
+    int y = 2;
+    SECTION("2+2") {
+        CAPTURE(x, y);
+        CHECK(x == 2);
+        CHECK(y == 2);
+        REQUIRE(x + y == 4);
+    }
+}
+
