@@ -41,7 +41,7 @@ def create_problem(problem_name: str, url: str | None = None):
 
     file_path = problem_dir / f"{problem_name}.cpp"
 
-    with open("template.cpp.tmpl", "r") as f:
+    with open(script_dir / "template.cpp.tmpl", "r") as f:
         template = f.read()
         template = template.replace("%%PROBLEM_NAME%%", problem_name)
 
