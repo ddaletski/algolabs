@@ -54,7 +54,6 @@ mod search_insert_position;
 mod serialize_and_deserialize_binary_tree;
 mod shuffle_an_array;
 mod single_threaded_cpu;
-mod smallest_range_covering_elements_from_k_lists;
 mod snapshot_array;
 mod stream_of_characters;
 mod subarray_sum_equals_k;
