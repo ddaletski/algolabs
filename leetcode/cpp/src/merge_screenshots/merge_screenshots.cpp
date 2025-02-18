@@ -204,4 +204,3 @@ TEST_CASE("merge_screenshots")
         check_collisions(2.0 / 1000);
     }
 }
-
