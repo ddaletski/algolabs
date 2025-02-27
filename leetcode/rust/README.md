@@ -2,7 +2,6 @@
 
 My leetcode solutions in Rust
 
-
 ## Usage
 
 Every directory under `problems/` is a cargo project which contains some basic test cases.
@@ -10,6 +9,13 @@ Every directory under `problems/` is a cargo project which contains some basic t
 The whole project is a cargo workspace,
 so all solutions can be tested using `cargo test` from repository root
 
+## Adding a problem
+
+Use [this script](./add_problem.py) to initialize new problem quickly]. Example usage:
+
+```shell
+python add-problem.py leetcode "https://leetcode.com/problems/length-of-longest-fibonacci-subsequence"
+```
 
 ## Common
 
